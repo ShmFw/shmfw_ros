@@ -32,52 +32,74 @@
 
 
 #include <shmfw_bridge/shmfw_bridge.h>
+#include <nav_msgs/Path.h>
+#include <geometry_msgs/PoseArray.h>
+#include <tf/tf.h>
+#include <visualization_msgs/Marker.h>
 
 #include <shmfw/variable.h>
-#include <shmfw/objects/pose2d_agv.h>
+#include <shmfw/objects/pose.h>
+#include <shmfw/objects/waypoint.h>
+#include <shmfw/serialization/vector.h>
 
-Pose::Pose()
-    : target_frame_ ( "map" )
-    , source_frame_ ( "base_link" )
-    , shm_varible_postfix_ ( "pose" )
-    , tf_prefix_ () {
+WayPoints::WayPoints()
+    : frequency_ ( 1.0 )
+    , shm_varible_postfix_ ( "waypoints" ) {
 
 }
 
-void Pose::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info ) {
+
+void WayPoints::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info ) {
 
     n_param.getParam ( "shm_varible_postfix", shm_varible_postfix_ );
     ROS_INFO ( "%s/shm_varible_postfix: %s", n_param.getNamespace().c_str(), shm_varible_postfix_.c_str() );
-    
+
     sprintf ( shm_varible_name_, "agv%03d_%s", agv_info.id, shm_varible_postfix_.c_str() );
     ROS_INFO ( "%s/shm_varible_name: %s", n_param.getNamespace().c_str(), shm_varible_name_ );
-    
-    n_param.getParam ( "target_frame", target_frame_ );
-    ROS_INFO ( "%s/target_frame: %s", n_param.getNamespace().c_str(), target_frame_.c_str() );
-    n_param.getParam ( "source_frame", source_frame_ );
-    ROS_INFO ( "%s/source_frame: %s", n_param.getNamespace().c_str(), source_frame_.c_str() );
-    n_param.getParam ( "tf_prefix", tf_prefix_ );
-    ROS_INFO ( "%s/tf_prefix: %s", n_param.getNamespace().c_str(), tf_prefix_.c_str() );
 
-    pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_varible_name_, shm_handler ) );
+
+    n_param.getParam ( "frequency", frequency_ );
+    ROS_INFO ( "%s/frequency: %5.2f, -1 means on update only", n_param.getNamespace().c_str(), frequency_ );
+
+
+    waypoints_ = boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > ( new ShmFw::Vector<ShmFw::WayPoint> ( shm_varible_name_, shm_handler ) );
+
+    pub_waypoints_ = n.advertise<geometry_msgs::PoseArray> ( "waypoints", 1 );
+    thread_ = boost::thread ( boost::bind ( &WayPoints::update, this ) );
+
 }
 
-void Pose::update() {
-    tf::StampedTransform transform;
-    std::string target_frame_id = tf::resolve ( tf_prefix_, target_frame_ );
-    std::string source_frame_id = tf::resolve ( tf_prefix_, source_frame_ );
-    tfScalar yaw, pitch, roll;
-    ShmFw::Pose2DAGV p;
-    try {
-        listener_.lookupTransform ( target_frame_id, source_frame_id, ros::Time ( 0 ), transform );
-        transform.getBasis().getRPY ( roll, pitch, yaw );
-        p.position.x = transform.getOrigin() [0];
-        p.position.y = transform.getOrigin() [1];
-        p.orientation = yaw;
-        pose_->set ( p );
-    } catch ( tf::TransformException ex ) {
-        ROS_ERROR ( "%s",ex.what() );
-        ros::Duration ( 1.0 ).sleep();
+void WayPoints::update() {
+    ros::Rate rate(frequency_);
+    int timeout = 1000.0/frequency_;
+    int timeout_count = 0;
+    std::vector<ShmFw::WayPoint> points;
+    points.resize(10);
+    geometry_msgs::PoseArray waypoints;
+    while ( ros::ok() ) {
+        bool read = false;
+        if ( frequency_ < 0 ) {
+            waypoints_->wait();
+            read = true;
+        } else {
+            waypoints_->timed_wait ( timeout );
+            read = true;
+        }
+        if ( read ) {
+            timeout_count = 0;
+            waypoints_->get ( points );
+            waypoints.header.frame_id = "map";
+            waypoints.header.stamp = ros::Time::now();
+            waypoints.poses.resize ( points.size() );
+            for ( size_t i = 0; i < points.size(); i++ ) {
+                points[i].pose.copyTo(waypoints.poses[i]);
+            }
+            pub_waypoints_.publish ( waypoints );
+        } else {
+            ROS_INFO ( "Command::update_motion timeout: %i", timeout_count );
+            timeout_count++;
+        }
+        rate.sleep();
     }
-
 }
+

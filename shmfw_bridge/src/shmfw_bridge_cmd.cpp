@@ -34,40 +34,38 @@
 #include <shmfw_bridge/shmfw_bridge.h>
 
 #include <shmfw/variable.h>
-#include <shmfw/objects/velocity.h>
+#include <shmfw/objects/twist.h>
 
 Command::Command()
-    : shm_varible_name_ ( "cmd_vel" )
+    : shm_varible_postfix_("cmd_vel")
     , frequency_ ( 1.0 ) {
 
 }
 
 void Command::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info ) {
 
-    n_param.getParam ( "shm_varible_name", shm_varible_name_ );
-    ROS_INFO ( "%s/shm_varible_name: %s", n_param.getNamespace().c_str(), shm_varible_name_.c_str() );
+    sprintf ( shm_varible_name_, "agv%03d_cmd_vel", agv_info.id );
+    ROS_INFO ( "%s/shm_varible_name: %s", n_param.getNamespace().c_str(), shm_varible_name_ );
+    
     n_param.getParam ( "frequency", frequency_ );
     ROS_INFO ( "%s/frequency: %5.2f, -1 means on update only", n_param.getNamespace().c_str(), frequency_ );
 
-    cmd_ = boost::shared_ptr<ShmFw::Var<ShmFw::Velocity> > ( new ShmFw::Var<ShmFw::Velocity> ( shm_varible_name_, shm_handler ) );
+    
+    cmd_ = boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > ( new ShmFw::Var<ShmFw::Twist> ( shm_varible_name_, shm_handler ) );
 
-    pub_ = n.advertise<geometry_msgs::Twist> ( "cmd_vel", 1 );
+    pub_ = n.advertise<geometry_msgs::Twist> ( shm_varible_postfix_, 1 );
     thread_ = boost::thread ( boost::bind ( &Command::update, this ) );
 
 }
 
-void Command::exit() {
-    loop = false;
-};
-
 void Command::update() {
+    ros::Rate rate(frequency_);
     int timeout = 1000.0/frequency_;
-    loop = true;
     int timeout_count = 0;
     geometry_msgs::Twist cmd;
-    ShmFw::Velocity velocity;
+    ShmFw::Twist twist;
     cmd.linear.x = cmd.linear.y = cmd.linear.z = cmd.angular.x = 0,  cmd.angular.y = 0,  cmd.angular.z = 0;
-    while ( loop ) {
+    while ( ros::ok() ) {
         bool read = false;
         if ( frequency_ < 0 ) {
             cmd_->wait();
@@ -78,17 +76,13 @@ void Command::update() {
         }
         if ( read ) {
             timeout_count = 0;
-	    cmd_->get(velocity);
-            cmd.linear.x = velocity.vx;
-            cmd.linear.y = velocity.vy;
-            cmd.linear.z = velocity.vz;
-            cmd.angular.x = velocity.wx;
-            cmd.angular.y = velocity.wy;
-            cmd.angular.z = velocity.wz;
+	    cmd_->get(twist);
+	    twist.copyTo(cmd);
             pub_.publish ( cmd );
         } else {
             ROS_INFO ( "Command::update_motion timeout: %i", timeout_count );
             timeout_count++;
         }
+        rate.sleep();
     }
 }

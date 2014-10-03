@@ -5,14 +5,14 @@
 #include <shmfw/variable.h>
 #include <shmfw/deque.h>
 #include <shmfw/objects/pose2d_agv.h>
-#include <shmfw/objects/segment_agv.h>
+#include <shmfw/objects/route_segment.h>
 #include <tf/tf.h>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 int main ( int argc, char** argv ) {
 
-
+/*
     ros::init ( argc, argv, "simple_navigation_goals" );
     short enabled = false;
 
@@ -63,6 +63,6 @@ int main ( int argc, char** argv ) {
         }
 
     }
-
+*/
     return 0;
 }

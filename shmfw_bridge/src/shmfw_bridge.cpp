@@ -34,7 +34,7 @@
 #include <shmfw/variable.h>
 #include <shmfw/serialization/deque.h>
 
-ShmTFNode::ShmTFNode ()
+ShmFwBridge::ShmFwBridge ()
     : n_ ()
     , n_param_ ( "~" )
     , frequency_ ( 10.0 )
@@ -48,12 +48,18 @@ ShmTFNode::ShmTFNode ()
     command_ = boost::shared_ptr<Command> ( new Command ); 
     command_->initialize(n_, ros::NodeHandle(n_param_,"cmd"), shm_handler_, agv_info_);
     
-    path_ = boost::shared_ptr<Path> ( new Path ); 
-    path_->initialize(n_, ros::NodeHandle(n_param_,"path"), shm_handler_, agv_info_);
+    segments_ = boost::shared_ptr<Segments> ( new Segments ); 
+    segments_->initialize(n_, ros::NodeHandle(n_param_,"path"), shm_handler_, agv_info_);
+    
+    waypoints_ = boost::shared_ptr<WayPoints> ( new WayPoints ); 
+    waypoints_->initialize(n_, ros::NodeHandle(n_param_,"waypoints"), shm_handler_, agv_info_);
     
     pose_ = boost::shared_ptr<Pose> ( new Pose ); 
     pose_->initialize(n_, ros::NodeHandle(n_param_,"pose"), shm_handler_, agv_info_);
 
+    gazebo_ = boost::shared_ptr<Gazebo> ( new Gazebo ); 
+    gazebo_->initialize(n_, ros::NodeHandle(n_param_,"gazebo"), shm_handler_, agv_info_);
+    
     ros::Rate rate ( frequency_ );
     while ( ros::ok() ) {
         pose_->update();
@@ -62,7 +68,7 @@ ShmTFNode::ShmTFNode ()
     }
 }
 
-void ShmTFNode::read_parameter() {
+void ShmFwBridge::read_parameter() {
     ROS_INFO ( "namespace: %s", n_param_.getNamespace().c_str());
     
     n_param_.getParam ( "frequency", frequency_ );
@@ -80,6 +86,6 @@ void ShmTFNode::read_parameter() {
 
 int main ( int argc, char **argv ) {
     ros::init ( argc, argv, "shmfw_bridge" );
-    ShmTFNode node;
+    ShmFwBridge node;
     return 0;
 }

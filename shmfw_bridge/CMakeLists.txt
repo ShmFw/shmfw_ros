@@ -4,7 +4,7 @@ project(shmfw_bridge)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp rospy tf)
+find_package(catkin REQUIRED roscpp rospy tf geometry_msgs visualization_msgs gazebo_msgs)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -100,7 +100,9 @@ include_directories(include)
 add_executable(shmfw_bridge_node src/shmfw_bridge.cpp 
 src/shmfw_bridge_pose.cpp 
 src/shmfw_bridge_cmd.cpp
-src/shmfw_bridge_path.cpp)
+src/shmfw_bridge_segments.cpp
+src/shmfw_bridge_gazebo.cpp
+src/shmfw_bridge_waypoints.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes

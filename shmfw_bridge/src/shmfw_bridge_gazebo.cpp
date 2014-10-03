@@ -34,50 +34,53 @@
 #include <shmfw_bridge/shmfw_bridge.h>
 
 #include <shmfw/variable.h>
+#include <shmfw/objects/pose.h>
 #include <shmfw/objects/pose2d_agv.h>
+#include <gazebo_msgs/ModelStates.h>
+#include <geometry_msgs/PoseStamped.h>
 
-Pose::Pose()
+Gazebo::Gazebo()
     : target_frame_ ( "map" )
-    , source_frame_ ( "base_link" )
-    , shm_varible_postfix_ ( "pose" )
-    , tf_prefix_ () {
+    , shm_name_pose_gt_ ( "pose_gt" )
+    , gazebo_model_name_ ( "r1" ) {
 
 }
 
-void Pose::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info ) {
+void Gazebo::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler, const AGVInfo &agv_info ) {
 
-    n_param.getParam ( "shm_varible_postfix", shm_varible_postfix_ );
-    ROS_INFO ( "%s/shm_varible_postfix: %s", n_param.getNamespace().c_str(), shm_varible_postfix_.c_str() );
-    
-    sprintf ( shm_varible_name_, "agv%03d_%s", agv_info.id, shm_varible_postfix_.c_str() );
-    ROS_INFO ( "%s/shm_varible_name: %s", n_param.getNamespace().c_str(), shm_varible_name_ );
+  char name[0xFF];
+    n_param.getParam ( "shm_name_pose_gt", shm_name_pose_gt_ );    
+    sprintf ( name, "agv%03d_%s", agv_info.id, shm_name_pose_gt_.c_str() );
+    ROS_INFO ( "%s/shm_name_pose_gt: %s", n_param.getNamespace().c_str(), name );
+    pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( name, shm_handler ) );
     
     n_param.getParam ( "target_frame", target_frame_ );
     ROS_INFO ( "%s/target_frame: %s", n_param.getNamespace().c_str(), target_frame_.c_str() );
-    n_param.getParam ( "source_frame", source_frame_ );
-    ROS_INFO ( "%s/source_frame: %s", n_param.getNamespace().c_str(), source_frame_.c_str() );
-    n_param.getParam ( "tf_prefix", tf_prefix_ );
-    ROS_INFO ( "%s/tf_prefix: %s", n_param.getNamespace().c_str(), tf_prefix_.c_str() );
+    
+    n_param.getParam ( "gazebo_model_name", gazebo_model_name_ );
+    ROS_INFO ( "%s/gazebo_model_name: %s", n_param.getNamespace().c_str(), gazebo_model_name_.c_str() );
 
-    pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_varible_name_, shm_handler ) );
+    msg_.header.frame_id = target_frame_;
+    msg_.header.seq = 0;
+    pub_ = n.advertise<geometry_msgs::PoseStamped> ( "pose_gt", 1 );
+    sub_ = n.subscribe ( "/gazebo/model_states", 1, &Gazebo::callback, this );
 }
 
-void Pose::update() {
-    tf::StampedTransform transform;
-    std::string target_frame_id = tf::resolve ( tf_prefix_, target_frame_ );
-    std::string source_frame_id = tf::resolve ( tf_prefix_, source_frame_ );
-    tfScalar yaw, pitch, roll;
-    ShmFw::Pose2DAGV p;
-    try {
-        listener_.lookupTransform ( target_frame_id, source_frame_id, ros::Time ( 0 ), transform );
-        transform.getBasis().getRPY ( roll, pitch, yaw );
-        p.position.x = transform.getOrigin() [0];
-        p.position.y = transform.getOrigin() [1];
-        p.orientation = yaw;
-        pose_->set ( p );
-    } catch ( tf::TransformException ex ) {
-        ROS_ERROR ( "%s",ex.what() );
-        ros::Duration ( 1.0 ).sleep();
-    }
 
+void Gazebo::callback ( const gazebo_msgs::ModelStates::ConstPtr& msg ) {
+    ShmFw::Pose2DAGV pose2D;
+    ShmFw::Pose pose3D;
+    for ( int i = 0; i < msg->name.size(); i++ ) {
+        if ( msg->name[i].compare ( gazebo_model_name_ ) == 0 ) {
+            ShmFw::Point p ( msg->pose[i].position.x, msg->pose[i].position.y, msg->pose[i].position.z );
+            ShmFw::Quaternion o ( msg->pose[i].orientation.x, msg->pose[i].orientation.y, msg->pose[i].orientation.z, msg->pose[i].orientation.w );
+            pose3D.setPose ( p,o );
+	    pose3D.getPose2D(pose2D);
+            ROS_INFO ( "robot: %s, %s", msg->name[i].c_str(), pose2D.getToString().c_str() );
+            pose_->set ( pose2D );	    
+	    msg_.header.stamp = ros::Time::now();
+	    pose3D.copyTo(msg_.pose);
+	    pub_.publish(msg_);
+        }
+    }
 }
