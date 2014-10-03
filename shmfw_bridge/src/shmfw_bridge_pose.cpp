@@ -59,7 +59,7 @@ void Pose::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::share
     n_param.getParam ( "tf_prefix", tf_prefix_ );
     ROS_INFO ( "%s/tf_prefix: %s", n_param.getNamespace().c_str(), tf_prefix_.c_str() );
 
-    pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_varible_name_, shm_handler ) );
+    shm_pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_varible_name_, shm_handler ) );
 }
 
 void Pose::update() {
@@ -74,9 +74,9 @@ void Pose::update() {
         p.position.x = transform.getOrigin() [0];
         p.position.y = transform.getOrigin() [1];
         p.orientation = yaw;
-        pose_->set ( p );
+        shm_pose_->set ( p );
     } catch ( tf::TransformException ex ) {
-        ROS_ERROR ( "%s",ex.what() );
+        //ROS_ERROR ( "%s",ex.what() );
         ros::Duration ( 1.0 ).sleep();
     }
 

@@ -62,7 +62,7 @@ void WayPoints::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::
     ROS_INFO ( "%s/frequency: %5.2f, -1 means on update only", n_param.getNamespace().c_str(), frequency_ );
 
 
-    waypoints_ = boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > ( new ShmFw::Vector<ShmFw::WayPoint> ( shm_varible_name_, shm_handler ) );
+    shm_waypoints_ = boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > ( new ShmFw::Vector<ShmFw::WayPoint> ( shm_varible_name_, shm_handler ) );
 
     pub_waypoints_ = n.advertise<geometry_msgs::PoseArray> ( "waypoints", 1 );
     thread_ = boost::thread ( boost::bind ( &WayPoints::update, this ) );
@@ -70,31 +70,33 @@ void WayPoints::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::
 }
 
 void WayPoints::update() {
-    ros::Rate rate(frequency_);
+    ros::Rate rate ( frequency_ );
     int timeout = 1000.0/frequency_;
     int timeout_count = 0;
     std::vector<ShmFw::WayPoint> points;
-    points.resize(10);
+    points.resize ( 10 );
     geometry_msgs::PoseArray waypoints;
     while ( ros::ok() ) {
         bool read = false;
         if ( frequency_ < 0 ) {
-            waypoints_->wait();
+            shm_waypoints_->wait();
             read = true;
         } else {
-            waypoints_->timed_wait ( timeout );
+            shm_waypoints_->timed_wait ( timeout );
             read = true;
         }
         if ( read ) {
             timeout_count = 0;
-            waypoints_->get ( points );
+            shm_waypoints_->get ( points );
             waypoints.header.frame_id = "map";
             waypoints.header.stamp = ros::Time::now();
             waypoints.poses.resize ( points.size() );
             for ( size_t i = 0; i < points.size(); i++ ) {
-                points[i].pose.copyTo(waypoints.poses[i]);
+                points[i].pose.copyTo ( waypoints.poses[i] );
             }
-            pub_waypoints_.publish ( waypoints );
+            if ( points.size() > 0 ) {
+                pub_waypoints_.publish ( waypoints );
+            }
         } else {
             ROS_INFO ( "Command::update_motion timeout: %i", timeout_count );
             timeout_count++;

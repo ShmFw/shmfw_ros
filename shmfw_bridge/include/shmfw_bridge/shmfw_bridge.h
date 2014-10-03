@@ -65,7 +65,7 @@ public:
     double frequency_;
     char shm_varible_name_[0xFF];
     std::string shm_varible_postfix_;
-    boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > cmd_;
+    boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > shm_cmd_;
     boost::thread thread_;
     ros::Publisher pub_;
     void update();
@@ -78,7 +78,7 @@ public:
     void initialize(ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info);
     char shm_varible_name_[0xFF];
     std::string shm_varible_postfix_;
-    boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > waypoints_;
+    boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > shm_waypoints_;
     double frequency_;
     boost::thread thread_;
     ros::Publisher pub_waypoints_;
@@ -92,7 +92,7 @@ public:
     void initialize(ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info);
     char shm_varible_name_[0xFF];
     std::string shm_varible_postfix_;
-    boost::shared_ptr<ShmFw::Deque<ShmFw::RouteSegment> > segments_ahead_;
+    boost::shared_ptr<ShmFw::Deque<ShmFw::RouteSegment> > shm_segments_ahead_;
     std::vector<ShmFw::Pose> &convertRoute2Path ( const std::vector<ShmFw::RouteSegment> &segments, std::vector<ShmFw::Pose> &path, double angle_resolution );
     void drawMarker ( const std::vector<ShmFw::RouteSegment> &segments );
     double frequency_;
@@ -117,7 +117,7 @@ public:
     char shm_varible_name_[0xFF];
     std::string shm_varible_postfix_;
     std::string tf_prefix_;
-    boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > pose_;
+    boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
     tf::TransformListener listener_;
     ros::Publisher pub_;
     void update();
@@ -130,13 +130,13 @@ public:
     std::string target_frame_;
     std::string shm_name_pose_gt_;
     std::string gazebo_model_name_;
-    boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > pose_;
+    boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
     boost::thread thread_;
     ros::Publisher pub_;
-    ros::Subscriber sub_;
+    ros::ServiceClient service_client_;
     geometry_msgs::PoseStamped msg_;
-    void update(boost::shared_ptr<ShmFw::Handler> &shm_handler);
-    void callback(const gazebo_msgs::ModelStates::ConstPtr& msg);
+    double frequency_;
+    void update();
 };
 
 class ShmFwBridge {
@@ -150,10 +150,15 @@ private:
     std::string shm_segment_name_;
     int shm_segment_size_;
     boost::shared_ptr<ShmFw::Handler> shm_handler_;
+    bool bridge_pose_;
     boost::shared_ptr<Pose> pose_;
+    bool bridge_command_;
     boost::shared_ptr<Command> command_;
+    bool bridge_segments_;
     boost::shared_ptr<Segments> segments_;
+    bool bridge_waypoints_;
     boost::shared_ptr<WayPoints> waypoints_;
+    bool bridge_gazebo_;
     boost::shared_ptr<Gazebo> gazebo_;
     void read_parameter();
 };

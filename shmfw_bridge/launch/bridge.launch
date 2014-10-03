@@ -1,16 +1,27 @@
 <launch>
 
   <arg name="robot_name" default="r1" />
+  <arg name="bridge_pose" default="true" />
+  <arg name="bridge_command" default="true" />
+  <arg name="bridge_segments" default="true" />
+  <arg name="bridge_waypoints" default="true" />
+  <arg name="bridge_gazebo" default="true" />
 
   <group ns="$(arg robot_name)">
     <node pkg="shmfw_bridge" type="shmfw_bridge_node" name="shmfw_bridge" output="screen">
+      <param name="frequency" value="10"/> 
       <param name="pose/tf_prefix" value="$(arg robot_name)"/> 
       <param name="pose/target_frame" value="/map"/>    
       <param name="pose/source_frame" value="base_link"/>  
       <param name="cmd/shm_varible_name" value="cmd_vel"/> 
       <param name="cmd/frequency" value="1"/>     
       <param name="path/resolution" value="0.2"/>       
-      <param name="gazebo/shm_name_pose_gt" value="pose"/>       
+      <param name="gazebo/shm_name_pose_gt" value="pose"/>    
+      <param name="bridge_pose" value="$(arg bridge_pose)"/>    
+      <param name="bridge_command" value="$(arg bridge_command)"/>    
+      <param name="bridge_segments" value="$(arg bridge_segments)"/>    
+      <param name="bridge_waypoints" value="$(arg bridge_waypoints)"/>    
+      <param name="bridge_gazebo" value="$(arg bridge_gazebo)"/>    
     </node>
   </group>
 

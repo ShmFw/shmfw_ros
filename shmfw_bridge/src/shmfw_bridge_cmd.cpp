@@ -51,7 +51,7 @@ void Command::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::sh
     ROS_INFO ( "%s/frequency: %5.2f, -1 means on update only", n_param.getNamespace().c_str(), frequency_ );
 
     
-    cmd_ = boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > ( new ShmFw::Var<ShmFw::Twist> ( shm_varible_name_, shm_handler ) );
+    shm_cmd_ = boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > ( new ShmFw::Var<ShmFw::Twist> ( shm_varible_name_, shm_handler ) );
 
     pub_ = n.advertise<geometry_msgs::Twist> ( shm_varible_postfix_, 1 );
     thread_ = boost::thread ( boost::bind ( &Command::update, this ) );
@@ -68,15 +68,15 @@ void Command::update() {
     while ( ros::ok() ) {
         bool read = false;
         if ( frequency_ < 0 ) {
-            cmd_->wait();
+            shm_cmd_->wait();
             read = true;
         } else {
-            cmd_->timed_wait ( timeout );
+            shm_cmd_->timed_wait ( timeout );
             read = true;
         }
         if ( read ) {
             timeout_count = 0;
-	    cmd_->get(twist);
+	    shm_cmd_->get(twist);
 	    twist.copyTo(cmd);
             pub_.publish ( cmd );
         } else {

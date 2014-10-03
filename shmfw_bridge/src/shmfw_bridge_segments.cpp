@@ -66,7 +66,7 @@ void Segments::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::s
     ROS_INFO ( "%s/frequency: %5.2f, -1 means on update only", n_param.getNamespace().c_str(), frequency_ );
 
 
-    segments_ahead_ = boost::shared_ptr<ShmFw::Deque<ShmFw::RouteSegment> > ( new ShmFw::Deque<ShmFw::RouteSegment> ( shm_varible_name_, shm_handler ) );
+    shm_segments_ahead_ = boost::shared_ptr<ShmFw::Deque<ShmFw::RouteSegment> > ( new ShmFw::Deque<ShmFw::RouteSegment> ( shm_varible_name_, shm_handler ) );
 
     pub_path_ = n.advertise<nav_msgs::Path> ( shm_varible_postfix_, 1 );
     pub_waypoints_ = n.advertise<geometry_msgs::PoseArray> ( "waypoints", 1 );
@@ -194,15 +194,15 @@ void Segments::update() {
     while ( ros::ok() ) {
         bool read = false;
         if ( frequency_ < 0 ) {
-            segments_ahead_->wait();
+            shm_segments_ahead_->wait();
             read = true;
         } else {
-            segments_ahead_->timed_wait ( timeout );
+            shm_segments_ahead_->timed_wait ( timeout );
             read = true;
         }
         if ( read ) {
             timeout_count = 0;
-            segments_ahead_->get ( segments );
+            shm_segments_ahead_->get ( segments );
             convertRoute2Path ( segments, poses, angle_resolution_ );
             path.header.frame_id = "map";
             path.header.stamp = ros::Time::now();
@@ -213,8 +213,9 @@ void Segments::update() {
                 path.poses[i].header.seq = i;
                 pose.copyTo ( path.poses[i].pose );
             }
-            pub_path_.publish ( path );
-
+            if(poses.size() > 0) {
+	      pub_path_.publish ( path );
+	    }
             if ( pub_marker_.getNumSubscribers() > 0 ) {
                 drawMarker ( segments );
             }

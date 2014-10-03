@@ -39,49 +39,77 @@ ShmFwBridge::ShmFwBridge ()
     , n_param_ ( "~" )
     , frequency_ ( 10.0 )
     , shm_segment_name_ ( DEFAULT_SEGMENT_NAME )
-    , shm_segment_size_ ( DEFAULT_SEGMENT_SIZE ) {
+    , shm_segment_size_ ( DEFAULT_SEGMENT_SIZE )
+    , bridge_pose_ ( true )
+    , bridge_command_ ( true )
+    , bridge_segments_ ( true )
+    , bridge_waypoints_ ( true )
+    , bridge_gazebo_ ( true ) {
 
     read_parameter();
-    
+
     shm_handler_ = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_ );
 
-    command_ = boost::shared_ptr<Command> ( new Command ); 
-    command_->initialize(n_, ros::NodeHandle(n_param_,"cmd"), shm_handler_, agv_info_);
-    
-    segments_ = boost::shared_ptr<Segments> ( new Segments ); 
-    segments_->initialize(n_, ros::NodeHandle(n_param_,"path"), shm_handler_, agv_info_);
-    
-    waypoints_ = boost::shared_ptr<WayPoints> ( new WayPoints ); 
-    waypoints_->initialize(n_, ros::NodeHandle(n_param_,"waypoints"), shm_handler_, agv_info_);
-    
-    pose_ = boost::shared_ptr<Pose> ( new Pose ); 
-    pose_->initialize(n_, ros::NodeHandle(n_param_,"pose"), shm_handler_, agv_info_);
+    if ( bridge_command_ ) {
+        command_ = boost::shared_ptr<Command> ( new Command );
+        command_->initialize ( n_, ros::NodeHandle ( n_param_,"cmd" ), shm_handler_, agv_info_ );
+    }
+    if ( bridge_segments_ ) {
+        segments_ = boost::shared_ptr<Segments> ( new Segments );
+        segments_->initialize ( n_, ros::NodeHandle ( n_param_,"path" ), shm_handler_, agv_info_ );
+    }
+    if ( bridge_waypoints_ ) {
+        waypoints_ = boost::shared_ptr<WayPoints> ( new WayPoints );
+        waypoints_->initialize ( n_, ros::NodeHandle ( n_param_,"waypoints" ), shm_handler_, agv_info_ );
+    }
+    if ( bridge_pose_ ) {
+        pose_ = boost::shared_ptr<Pose> ( new Pose );
+        pose_->initialize ( n_, ros::NodeHandle ( n_param_,"pose" ), shm_handler_, agv_info_ );
+    }
+    if ( bridge_gazebo_ ) {
+        gazebo_ = boost::shared_ptr<Gazebo> ( new Gazebo );
+        gazebo_->initialize ( n_, ros::NodeHandle ( n_param_,"gazebo" ), shm_handler_, agv_info_ );
+    }
 
-    gazebo_ = boost::shared_ptr<Gazebo> ( new Gazebo ); 
-    gazebo_->initialize(n_, ros::NodeHandle(n_param_,"gazebo"), shm_handler_, agv_info_);
-    
     ros::Rate rate ( frequency_ );
+    //ros::spin();
     while ( ros::ok() ) {
-        pose_->update();
-        ros::spinOnce();
+	if(pose_) pose_->update();
+        //ros::spinOnce();
         rate.sleep();
     }
 }
 
 void ShmFwBridge::read_parameter() {
-    ROS_INFO ( "namespace: %s", n_param_.getNamespace().c_str());
-    
+    ROS_INFO ( "namespace: %s", n_param_.getNamespace().c_str() );
+
     n_param_.getParam ( "frequency", frequency_ );
     ROS_INFO ( "frequency: %5.2f", frequency_ );
-    
+
     n_param_.getParam ( "id_agv", agv_info_.id );
-    ROS_INFO ( "id_agv: %d", agv_info_.id );  
-        
+    ROS_INFO ( "id_agv: %d", agv_info_.id );
+
     n_param_.getParam ( "shm_segment_name", shm_segment_name_ );
     ROS_INFO ( "shm_segment_name: %s", shm_segment_name_.c_str() );
-    
+
     n_param_.getParam ( "shm_segment_size", shm_segment_size_ );
-    ROS_INFO ( "shm_segment_size: %d", shm_segment_size_ );  
+    ROS_INFO ( "shm_segment_size: %d", shm_segment_size_ );
+
+
+    n_param_.getParam ( "bridge_pose", bridge_pose_ );
+    ROS_INFO ( "bridge_pose: %s", ( bridge_pose_?"ture":"flase" ) );
+
+    n_param_.getParam ( "bridge_command", bridge_command_ );
+    ROS_INFO ( "bridge_command: %s", ( bridge_command_?"ture":"flase" ) );
+
+    n_param_.getParam ( "bridge_segments", bridge_segments_ );
+    ROS_INFO ( "bridge_segments: %s", ( bridge_segments_?"ture":"flase" ) );
+
+    n_param_.getParam ( "bridge_waypoints", bridge_waypoints_ );
+    ROS_INFO ( "bridge_waypoints: %s", ( bridge_waypoints_?"ture":"flase" ) );
+
+    n_param_.getParam ( "bridge_gazebo", bridge_gazebo_ );
+    ROS_INFO ( "bridge_gazebo: %s", ( bridge_gazebo_?"ture":"flase" ) );
 }
 
 int main ( int argc, char **argv ) {
