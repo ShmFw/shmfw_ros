@@ -99,10 +99,11 @@ include_directories(include)
 ## Declare a cpp executable
 add_executable(shmfw_bridge_node src/shmfw_bridge.cpp 
 src/shmfw_bridge_pose.cpp 
-src/shmfw_bridge_cmd.cpp
+src/shmfw_bridge_command.cpp
 src/shmfw_bridge_segments.cpp
 src/shmfw_bridge_gazebo.cpp
-src/shmfw_bridge_waypoints.cpp)
+src/shmfw_bridge_waypoints.cpp
+src/shmfw_bridge_marker.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes

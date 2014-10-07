@@ -39,6 +39,8 @@
 #include <boost/thread.hpp>
 #include <gazebo_msgs/ModelStates.h>
 #include <shmfw/forward_declarations.h>
+#include <shmfw/allocator.h>
+#include <shmfw/objects/marker.h>
 
 namespace visualization_msgs{
   template <class ContainerAllocator> struct Marker_;
@@ -58,6 +60,8 @@ struct AGVInfo{
   }
   int id;
 };
+
+
 class Command {
 public:
     Command();
@@ -106,6 +110,20 @@ public:
     boost::shared_ptr<visualization_msgs::Marker > marker_end_;
     void update();
     void initMarker();
+};
+
+class Marker {
+public:
+    Marker();
+    void initialize(ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info);
+    double frequency_;
+    char shm_varible_name_[0xFF];
+    std::string shm_varible_postfix_;
+    boost::shared_ptr<ShmFw::Vector<ShmFw::Marker> > shm_marker_;
+    boost::thread thread_;
+    ros::Publisher pub_marker_;
+    void drawMarker (const ShmFw::Marker &marker); 
+    void update();
 };
 
 class Pose {
@@ -160,6 +178,8 @@ private:
     boost::shared_ptr<WayPoints> waypoints_;
     bool bridge_gazebo_;
     boost::shared_ptr<Gazebo> gazebo_;
+    bool bridge_marker_;
+    boost::shared_ptr<Marker> marker_;
     void read_parameter();
 };
 

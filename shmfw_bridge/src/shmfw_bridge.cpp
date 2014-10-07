@@ -44,7 +44,8 @@ ShmFwBridge::ShmFwBridge ()
     , bridge_command_ ( true )
     , bridge_segments_ ( true )
     , bridge_waypoints_ ( true )
-    , bridge_gazebo_ ( true ) {
+    , bridge_gazebo_ ( true )
+    , bridge_marker_ ( true ) {
 
     read_parameter();
 
@@ -69,6 +70,10 @@ ShmFwBridge::ShmFwBridge ()
     if ( bridge_gazebo_ ) {
         gazebo_ = boost::shared_ptr<Gazebo> ( new Gazebo );
         gazebo_->initialize ( n_, ros::NodeHandle ( n_param_,"gazebo" ), shm_handler_, agv_info_ );
+    }
+    if ( bridge_marker_ ) {
+        marker_ = boost::shared_ptr<Marker> ( new Marker );
+        marker_->initialize ( n_, ros::NodeHandle ( n_param_,"marker" ), shm_handler_, agv_info_ );
     }
 
     ros::Rate rate ( frequency_ );
@@ -110,6 +115,9 @@ void ShmFwBridge::read_parameter() {
 
     n_param_.getParam ( "bridge_gazebo", bridge_gazebo_ );
     ROS_INFO ( "bridge_gazebo: %s", ( bridge_gazebo_?"ture":"flase" ) );
+    
+    n_param_.getParam ( "bridge_marker", bridge_marker_ );
+    ROS_INFO ( "bridge_marker: %s", ( bridge_marker_?"ture":"flase" ) );
 }
 
 int main ( int argc, char **argv ) {
