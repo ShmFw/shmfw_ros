@@ -23,7 +23,11 @@
       <param name="bridge_waypoints" value="$(arg bridge_waypoints)"/>    
       <param name="bridge_gazebo" value="$(arg bridge_gazebo)"/>    
     </node>
-  </group>
 
+    <node pkg="shmfw_visualization_marker" type="shmfw_visualization_marker_node" name="shmfw_visualization_marker" output="screen">
+      <param name="frequency" value="10"/> 
+      <param name="shm_varible_names" value="marker_subgoal"/>       
+    </node>
+  </group>
 
 </launch>

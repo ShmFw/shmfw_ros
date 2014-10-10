@@ -42,19 +42,16 @@
 
 Gazebo::Gazebo()
     : target_frame_ ( "map" )
-    , shm_name_pose_gt_ ( "pose_gt" )
+    , shm_variable_name_ ( "pose_gt" )
     , gazebo_model_name_ ( "r1" )
     , frequency_ ( 10 ) {
 
 }
 
-void Gazebo::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler, const AGVInfo &agv_info ) {
+void Gazebo::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler ) {
 
-    char name[0xFF];
-    n_param.getParam ( "shm_name_pose_gt", shm_name_pose_gt_ );
-    sprintf ( name, "agv%03d_%s", agv_info.id, shm_name_pose_gt_.c_str() );
-    ROS_INFO ( "%s/shm_name_pose_gt: %s", n_param.getNamespace().c_str(), name );
-    shm_pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( name, shm_handler ) );
+    n_param.getParam ( "shm_variable_name", shm_variable_name_ );
+    ROS_INFO ( "%s/shm_variable_name: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace(shm_variable_name_).c_str() );
 
     n_param.getParam ( "target_frame", target_frame_ );
     ROS_INFO ( "%s/target_frame: %s", n_param.getNamespace().c_str(), target_frame_.c_str() );
@@ -65,6 +62,7 @@ void Gazebo::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::sha
     n_param.getParam ( "frequency", frequency_ );
     ROS_INFO ( "%s/frequency: %5.2f", n_param.getNamespace().c_str(), frequency_ );
 
+    shm_pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_variable_name_, shm_handler ) );
     msg_.header.frame_id = target_frame_;
     msg_.header.seq = 0;
     pub_ = n.advertise<geometry_msgs::PoseStamped> ( "pose_gt", 1 );

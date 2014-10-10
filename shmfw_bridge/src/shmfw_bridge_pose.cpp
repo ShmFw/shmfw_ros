@@ -39,19 +39,16 @@
 Pose::Pose()
     : target_frame_ ( "map" )
     , source_frame_ ( "base_link" )
-    , shm_varible_postfix_ ( "pose" )
-    , tf_prefix_ () {
+    , shm_variable_name_ ( "pose" )
+    , tf_prefix_ ()
+    , frequency_ ( 10 ) {
 
 }
 
-void Pose::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info ) {
+void Pose::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler ) {
 
-    n_param.getParam ( "shm_varible_postfix", shm_varible_postfix_ );
-    ROS_INFO ( "%s/shm_varible_postfix: %s", n_param.getNamespace().c_str(), shm_varible_postfix_.c_str() );
-    
-    sprintf ( shm_varible_name_, "agv%03d_%s", agv_info.id, shm_varible_postfix_.c_str() );
-    ROS_INFO ( "%s/shm_varible_name: %s", n_param.getNamespace().c_str(), shm_varible_name_ );
-    
+    n_param.getParam ( "shm_variable_name", shm_variable_name_ );
+    ROS_INFO ( "%s/shm_variable_name: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace ( shm_variable_name_ ).c_str() );
     n_param.getParam ( "target_frame", target_frame_ );
     ROS_INFO ( "%s/target_frame: %s", n_param.getNamespace().c_str(), target_frame_.c_str() );
     n_param.getParam ( "source_frame", source_frame_ );
@@ -59,25 +56,29 @@ void Pose::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::share
     n_param.getParam ( "tf_prefix", tf_prefix_ );
     ROS_INFO ( "%s/tf_prefix: %s", n_param.getNamespace().c_str(), tf_prefix_.c_str() );
 
-    shm_pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_varible_name_, shm_handler ) );
+    shm_pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_variable_name_, shm_handler ) );;
+    thread_ = boost::thread ( boost::bind ( &Pose::update, this ) );
 }
 
 void Pose::update() {
-    tf::StampedTransform transform;
-    std::string target_frame_id = tf::resolve ( tf_prefix_, target_frame_ );
-    std::string source_frame_id = tf::resolve ( tf_prefix_, source_frame_ );
-    tfScalar yaw, pitch, roll;
-    ShmFw::Pose2DAGV p;
-    try {
-        listener_.lookupTransform ( target_frame_id, source_frame_id, ros::Time ( 0 ), transform );
-        transform.getBasis().getRPY ( roll, pitch, yaw );
-        p.position.x = transform.getOrigin() [0];
-        p.position.y = transform.getOrigin() [1];
-        p.orientation = yaw;
-        shm_pose_->set ( p );
-    } catch ( tf::TransformException ex ) {
-        //ROS_ERROR ( "%s",ex.what() );
-        ros::Duration ( 1.0 ).sleep();
+    ros::Rate rate ( frequency_ );
+    while ( ros::ok() ) {
+        tf::StampedTransform transform;
+        std::string target_frame_id = tf::resolve ( tf_prefix_, target_frame_ );
+        std::string source_frame_id = tf::resolve ( tf_prefix_, source_frame_ );
+        tfScalar yaw, pitch, roll;
+        ShmFw::Pose2DAGV p;
+        try {
+            listener_.lookupTransform ( target_frame_id, source_frame_id, ros::Time ( 0 ), transform );
+            transform.getBasis().getRPY ( roll, pitch, yaw );
+            p.position.x = transform.getOrigin() [0];
+            p.position.y = transform.getOrigin() [1];
+            p.orientation = yaw;
+            shm_pose_->set ( p );
+        } catch ( tf::TransformException ex ) {
+            //ROS_ERROR ( "%s",ex.what() );
+            ros::Duration ( 1.0 ).sleep();
+        }
+        rate.sleep();
     }
-
 }

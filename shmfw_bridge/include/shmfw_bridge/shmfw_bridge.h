@@ -40,7 +40,6 @@
 #include <gazebo_msgs/ModelStates.h>
 #include <shmfw/forward_declarations.h>
 #include <shmfw/allocator.h>
-#include <shmfw/objects/marker.h>
 
 namespace visualization_msgs{
   template <class ContainerAllocator> struct Marker_;
@@ -53,22 +52,12 @@ typedef boost::shared_ptr< ::gazebo_msgs::ModelStates > ModelStatesPtr;
 typedef boost::shared_ptr< ::gazebo_msgs::ModelStates const> ModelStatesConstPtr;
 }
 
-
-struct AGVInfo{
-  AGVInfo()
-  : id(15){    
-  }
-  int id;
-};
-
-
 class Command {
 public:
     Command();
-    void initialize(ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info);
+    void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
     double frequency_;
-    char shm_varible_name_[0xFF];
-    std::string shm_varible_postfix_;
+    std::string shm_variable_name_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > shm_cmd_;
     boost::thread thread_;
     ros::Publisher pub_;
@@ -79,9 +68,8 @@ public:
 class WayPoints {
 public:
     WayPoints();
-    void initialize(ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info);
-    char shm_varible_name_[0xFF];
-    std::string shm_varible_postfix_;
+    void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
+    std::string shm_variable_name_;
     boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > shm_waypoints_;
     double frequency_;
     boost::thread thread_;
@@ -93,9 +81,8 @@ public:
 class Segments {
 public:
     Segments();
-    void initialize(ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info);
-    char shm_varible_name_[0xFF];
-    std::string shm_varible_postfix_;
+    void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
+    std::string shm_variable_name_;
     boost::shared_ptr<ShmFw::Deque<ShmFw::RouteSegment> > shm_segments_ahead_;
     std::vector<ShmFw::Pose> &convertRoute2Path ( const std::vector<ShmFw::RouteSegment> &segments, std::vector<ShmFw::Pose> &path, double angle_resolution );
     void drawMarker ( const std::vector<ShmFw::RouteSegment> &segments );
@@ -112,30 +99,17 @@ public:
     void initMarker();
 };
 
-class Marker {
-public:
-    Marker();
-    void initialize(ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info);
-    double frequency_;
-    char shm_varible_name_[0xFF];
-    std::string shm_varible_postfix_;
-    boost::shared_ptr<ShmFw::Vector<ShmFw::Marker> > shm_marker_;
-    boost::thread thread_;
-    ros::Publisher pub_marker_;
-    void drawMarker (const ShmFw::Marker &marker); 
-    void update();
-};
-
 class Pose {
 public:
     Pose();
-    void initialize(ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info);
+    void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
     std::string target_frame_;
     std::string source_frame_;
-    char shm_varible_name_[0xFF];
-    std::string shm_varible_postfix_;
+    std::string shm_variable_name_;
+    double frequency_;
     std::string tf_prefix_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
+    boost::thread thread_;
     tf::TransformListener listener_;
     ros::Publisher pub_;
     void update();
@@ -144,9 +118,9 @@ public:
 class Gazebo {
 public:
     Gazebo();
-    void initialize(ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler, const AGVInfo &agv_info);
+    void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
     std::string target_frame_;
-    std::string shm_name_pose_gt_;
+    std::string shm_variable_name_;
     std::string gazebo_model_name_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
     boost::thread thread_;
@@ -164,7 +138,6 @@ private:
     ros::NodeHandle n_;
     ros::NodeHandle n_param_;
     double frequency_;
-    AGVInfo agv_info_;
     std::string shm_segment_name_;
     int shm_segment_size_;
     boost::shared_ptr<ShmFw::Handler> shm_handler_;
@@ -178,8 +151,7 @@ private:
     boost::shared_ptr<WayPoints> waypoints_;
     bool bridge_gazebo_;
     boost::shared_ptr<Gazebo> gazebo_;
-    bool bridge_marker_;
-    boost::shared_ptr<Marker> marker_;
+private:
     void read_parameter();
 };
 

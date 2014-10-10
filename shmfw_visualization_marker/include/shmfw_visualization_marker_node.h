@@ -31,58 +31,43 @@
  ***************************************************************************/
 
 
-#include <shmfw_bridge/shmfw_bridge.h>
+#ifndef ROS_SHMFW_VIZUALIZATION_MARKER_NODE_H
+#define ROS_SHMFW_VIZUALIZATION_MARKER_NODE_H
 
+#include "ros/ros.h"
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <shmfw/objects/ros/header.h>
+#include <shmfw/objects/ros/visualization_marker.h>
 #include <shmfw/variable.h>
-#include <shmfw/objects/twist.h>
+#include <shmfw/allocator.h>
 
-Command::Command()
-    : shm_variable_name_("cmd_vel")
-    , frequency_ ( 1.0 ) {
 
-}
+class ShmFwVisualizationMarker {
+  typedef boost::shared_ptr< ShmFw::Alloc<ShmFw::ros::VisualizationMarker> > ShmVisualizationMarkerPtr;
+public:
+    ShmFwVisualizationMarker ();
+private:
+    ros::NodeHandle n_;
+    ros::NodeHandle n_param_;
+    double frequency_;
+    std::string shm_segment_name_;
+    int shm_segment_size_;
+    std::string  shm_variable_name_;
+    std::vector<std::string>  shm_variable_names_;
+    ros::Publisher pub_marker_;
+    ros::Publisher pub_markers_;
+    visualization_msgs::Marker ros_visualization_marker_;
+    visualization_msgs::MarkerArray ros_visualization_markers_;
+    ShmVisualizationMarkerPtr shm_visualization_marker_;
+    std::vector<ShmVisualizationMarkerPtr> shm_visualization_markers_;
+    unsigned int timeout_count_;
+private:
+    void publish_marker();
+    void publish_markers();
+    void read_parameter();
+};
 
-void Command::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler) {
 
-    n_param.getParam ( "shm_variable_name", shm_variable_name_ );
-    ROS_INFO ( "%s/shm_variable_name: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace(shm_variable_name_).c_str() );
-    
-    n_param.getParam ( "frequency", frequency_ );
-    ROS_INFO ( "%s/frequency: %5.2f, -1 means on update only", n_param.getNamespace().c_str(), frequency_ );
 
-    
-    shm_cmd_ = boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > ( new ShmFw::Var<ShmFw::Twist> ( shm_variable_name_, shm_handler ) );
-
-    pub_ = n.advertise<geometry_msgs::Twist> ( shm_variable_name_, 1 );
-    thread_ = boost::thread ( boost::bind ( &Command::update, this ) );
-
-}
-
-void Command::update() {
-    ros::Rate rate(frequency_);
-    int timeout = 1000.0/frequency_;
-    int timeout_count = 0;
-    geometry_msgs::Twist cmd;
-    ShmFw::Twist twist;
-    cmd.linear.x = cmd.linear.y = cmd.linear.z = cmd.angular.x = 0,  cmd.angular.y = 0,  cmd.angular.z = 0;
-    while ( ros::ok() ) {
-        bool read = false;
-        if ( frequency_ < 0 ) {
-            shm_cmd_->wait();
-            read = true;
-        } else {
-            shm_cmd_->timed_wait ( timeout );
-            read = true;
-        }
-        if ( read ) {
-            timeout_count = 0;
-	    shm_cmd_->get(twist);
-	    twist.copyTo(cmd);
-            pub_.publish ( cmd );
-        } else {
-            ROS_INFO ( "Command::update_motion timeout: %i", timeout_count );
-            timeout_count++;
-        }
-        rate.sleep();
-    }
-}
+#endif //ROS_SHMFW_VIZUALIZATION_MARKER_NODE_H

@@ -44,27 +44,23 @@
 
 WayPoints::WayPoints()
     : frequency_ ( 1.0 )
-    , shm_varible_postfix_ ( "waypoints" ) {
+    , shm_variable_name_ ( "waypoints" ) {
 
 }
 
 
-void WayPoints::initialize ( ros::NodeHandle n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> shm_handler, const AGVInfo &agv_info ) {
+void WayPoints::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler) {
 
-    n_param.getParam ( "shm_varible_postfix", shm_varible_postfix_ );
-    ROS_INFO ( "%s/shm_varible_postfix: %s", n_param.getNamespace().c_str(), shm_varible_postfix_.c_str() );
-
-    sprintf ( shm_varible_name_, "agv%03d_%s", agv_info.id, shm_varible_postfix_.c_str() );
-    ROS_INFO ( "%s/shm_varible_name: %s", n_param.getNamespace().c_str(), shm_varible_name_ );
-
+    n_param.getParam ( "shm_variable_name", shm_variable_name_ );
+    ROS_INFO ( "%s/shm_variable_name: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace(shm_variable_name_).c_str() );
 
     n_param.getParam ( "frequency", frequency_ );
     ROS_INFO ( "%s/frequency: %5.2f, -1 means on update only", n_param.getNamespace().c_str(), frequency_ );
 
 
-    shm_waypoints_ = boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > ( new ShmFw::Vector<ShmFw::WayPoint> ( shm_varible_name_, shm_handler ) );
+    shm_waypoints_ = boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > ( new ShmFw::Vector<ShmFw::WayPoint> ( shm_variable_name_, shm_handler ) );
 
-    pub_waypoints_ = n.advertise<geometry_msgs::PoseArray> ( "waypoints", 1 );
+    pub_waypoints_ = n.advertise<geometry_msgs::PoseArray> ( shm_variable_name_, 1 );
     thread_ = boost::thread ( boost::bind ( &WayPoints::update, this ) );
 
 }
