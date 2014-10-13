@@ -37,6 +37,7 @@
 #include "ros/ros.h"
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <boost/thread.hpp>
 #include <shmfw/objects/ros/header.h>
 #include <shmfw/objects/ros/visualization_marker.h>
 #include <shmfw/variable.h>
@@ -45,6 +46,7 @@
 
 class ShmFwVisualizationMarker {
   typedef boost::shared_ptr< ShmFw::Alloc<ShmFw::ros::VisualizationMarker> > ShmVisualizationMarkerPtr;
+  typedef boost::shared_ptr< ShmFw::Alloc<ShmFw::ros::VisualizationMarkers> > ShmVisualizationMarkersPtr;
 public:
     ShmFwVisualizationMarker ();
 private:
@@ -53,18 +55,20 @@ private:
     double frequency_;
     std::string shm_segment_name_;
     int shm_segment_size_;
-    std::string  shm_variable_name_;
-    std::vector<std::string>  shm_variable_names_;
+    std::string  shm_marker_name_;
+    std::string  shm_marker_name_array_;
     ros::Publisher pub_marker_;
-    ros::Publisher pub_markers_;
+    ros::Publisher pub_marker_array_;
     visualization_msgs::Marker ros_visualization_marker_;
-    visualization_msgs::MarkerArray ros_visualization_markers_;
+    visualization_msgs::MarkerArray ros_visualization_marker_array_;
     ShmVisualizationMarkerPtr shm_visualization_marker_;
-    std::vector<ShmVisualizationMarkerPtr> shm_visualization_markers_;
+    ShmVisualizationMarkersPtr shm_visualization_marker_array_;    
+    boost::thread thread_visualization_marker_;
+    boost::thread thread_visualization_marker_array_;
     unsigned int timeout_count_;
 private:
     void publish_marker();
-    void publish_markers();
+    void publish_marker_array();
     void read_parameter();
 };
 
