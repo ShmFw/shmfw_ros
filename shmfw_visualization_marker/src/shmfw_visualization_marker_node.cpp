@@ -50,14 +50,8 @@ ShmFwVisualizationMarker::ShmFwVisualizationMarker ()
 
     read_parameter();
 
-    ShmFw::HandlerPtr shmHdl = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_ );
-    shmHdl->setNamespace ( n_.getNamespace() );
-
-    shm_visualization_marker_.reset ( new ShmFw::Alloc<ShmFw::ros::VisualizationMarker> ( shm_marker_name_, shmHdl ) );
-    shm_visualization_marker_array_.reset ( new ShmFw::Alloc<ShmFw::ros::VisualizationMarkers> ( shm_marker_name_array_, shmHdl ) );
-
-    pub_marker_ = n_.advertise<visualization_msgs::Marker> ( "/visualization_marker", 10 );
-    pub_marker_array_ = n_.advertise<visualization_msgs::MarkerArray> ( "/visualization_marker_array", 10 );
+    pub_marker_ = n_.advertise<visualization_msgs::Marker> ( "visualization_marker", 10 );
+    pub_marker_array_ = n_.advertise<visualization_msgs::MarkerArray> ( "visualization_marker_array", 10 );
 
     thread_visualization_marker_ = boost::thread ( boost::bind ( &ShmFwVisualizationMarker::publish_marker, this ) );    
     thread_visualization_marker_array_ = boost::thread ( boost::bind ( &ShmFwVisualizationMarker::publish_marker_array, this ) );
@@ -79,12 +73,17 @@ void ShmFwVisualizationMarker::read_parameter() {
     n_param_.getParam ( "shm_segment_size", shm_segment_size_ );
     ROS_INFO ( "shm_segment_size: %d", shm_segment_size_ );
 
+    ShmFw::HandlerPtr shmHdl = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_ );
+    shmHdl->setNamespace ( n_.getNamespace() );
+    
     n_param_.getParam ( "shm_marker_name", shm_marker_name_ );
-    ROS_INFO ( "shm_marker_name: %s", shm_marker_name_.c_str() );
+    ROS_INFO ( "%s/shm_marker_name: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace(shm_marker_name_).c_str() );
 
     n_param_.getParam ( "shm_marker_name_array", shm_marker_name_array_ );
-    ROS_INFO ( "shm_marker_name_array: %s", shm_marker_name_array_.c_str() );
+    ROS_INFO ( "%s/shm_marker_name_array: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace(shm_marker_name_array_).c_str() );
 
+    shm_visualization_marker_.reset ( new ShmFw::Alloc<ShmFw::ros::VisualizationMarker> ( shm_marker_name_, shmHdl ) );
+    shm_visualization_marker_array_.reset ( new ShmFw::Alloc<ShmFw::ros::VisualizationMarkerArray> ( shm_marker_name_array_, shmHdl ) );
 }
 
 void ShmFwVisualizationMarker::publish_marker() {
@@ -96,12 +95,11 @@ void ShmFwVisualizationMarker::publish_marker() {
 	  continue;
 	}
         bool read = false;
-        if ( frequency_ < 0 ) {
-	    usleep(100);
-            shm_visualization_marker_->wait();
+        if ( frequency_ > 0 ) {
+            shm_visualization_marker_->timed_wait ( 1.0/frequency_ );
             read = true;
         } else {
-            shm_visualization_marker_->timed_wait ( 1.0/frequency_ );
+            shm_visualization_marker_->wait();
             read = true;
         }
         if ( read ) {
@@ -118,24 +116,24 @@ void ShmFwVisualizationMarker::publish_marker() {
             ROS_INFO ( "ShmFwVisualizationMarker::publish_marker timeout: %i", timeout_count_ );
             timeout_count_++;
         }
-        rate.sleep();
+        if ( frequency_ > 0 )  rate.sleep();
+	else  usleep(100);
     }
 }
 
 void ShmFwVisualizationMarker::publish_marker_array() {
     ros::Rate rate ( frequency_ );
     while ( ros::ok() ) {
-        if ( pub_marker_.getNumSubscribers() == 0 ) {
+        if ( pub_marker_array_.getNumSubscribers() == 0 ) {
 	  sleep(1);
 	  continue;
 	}
         bool read = false;
-        if ( frequency_ < 0 ) {
-	    usleep(100);
-            shm_visualization_marker_array_->wait();
+        if ( frequency_ > 0 ) {
+            shm_visualization_marker_array_->timed_wait ( 1.0/frequency_ );
             read = true;
         } else {
-            shm_visualization_marker_array_->timed_wait ( 1.0/frequency_ );
+            shm_visualization_marker_array_->wait();
             read = true;
         }
         if ( read ) {
@@ -153,6 +151,7 @@ void ShmFwVisualizationMarker::publish_marker_array() {
             ROS_INFO ( "ShmFwVisualizationMarker::publish_marker timeout: %i", timeout_count_ );
             timeout_count_++;
         }
-        rate.sleep();
+        if ( frequency_ > 0 )  rate.sleep();
+	else  usleep(100);
     }
 }

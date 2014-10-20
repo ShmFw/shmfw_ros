@@ -46,7 +46,7 @@
 
 class ShmFwVisualizationMarker {
   typedef boost::shared_ptr< ShmFw::Alloc<ShmFw::ros::VisualizationMarker> > ShmVisualizationMarkerPtr;
-  typedef boost::shared_ptr< ShmFw::Alloc<ShmFw::ros::VisualizationMarkers> > ShmVisualizationMarkersPtr;
+  typedef boost::shared_ptr< ShmFw::Alloc<ShmFw::ros::VisualizationMarkerArray> > ShmVisualizationMarkerArrayPtr;
 public:
     ShmFwVisualizationMarker ();
 private:
@@ -62,7 +62,7 @@ private:
     visualization_msgs::Marker ros_visualization_marker_;
     visualization_msgs::MarkerArray ros_visualization_marker_array_;
     ShmVisualizationMarkerPtr shm_visualization_marker_;
-    ShmVisualizationMarkersPtr shm_visualization_marker_array_;    
+    ShmVisualizationMarkerArrayPtr shm_visualization_marker_array_;    
     boost::thread thread_visualization_marker_;
     boost::thread thread_visualization_marker_array_;
     unsigned int timeout_count_;
