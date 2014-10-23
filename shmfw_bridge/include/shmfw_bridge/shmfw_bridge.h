@@ -57,7 +57,8 @@ public:
     Command();
     void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
     double frequency_;
-    std::string shm_variable_name_;
+    double timeout_signal_;  ///onyl used if frequency_ < 0
+    std::string shm_name_cmd_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > shm_cmd_;
     boost::thread thread_;
     ros::Publisher pub_;
@@ -70,7 +71,7 @@ public:
     WayPoints();
     void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
     std::string shm_variable_name_;
-    boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > shm_waypoints_;
+    boost::shared_ptr<ShmFw::Vector<ShmFw::ModelState> > shm_waypoints_;
     double frequency_;
     boost::thread thread_;
     ros::Publisher pub_waypoints_;
@@ -109,6 +110,7 @@ public:
     double frequency_;
     std::string tf_prefix_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
+    boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > shm_state_;
     boost::thread thread_;
     tf::TransformListener listener_;
     ros::Publisher pub_;
@@ -120,9 +122,11 @@ public:
     Gazebo();
     void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
     std::string target_frame_;
-    std::string shm_variable_name_;
+    std::string shm_name_pose_;
+    std::string shm_name_state_;
     std::string gazebo_model_name_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
+    boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > shm_state_;
     boost::thread thread_;
     ros::Publisher pub_;
     ros::ServiceClient service_client_;

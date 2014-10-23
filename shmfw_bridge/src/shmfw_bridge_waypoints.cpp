@@ -39,7 +39,7 @@
 
 #include <shmfw/variable.h>
 #include <shmfw/objects/pose.h>
-#include <shmfw/objects/waypoint.h>
+#include <shmfw/objects/model_state.h>
 #include <shmfw/serialization/vector.h>
 
 WayPoints::WayPoints()
@@ -58,7 +58,7 @@ void WayPoints::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost:
     ROS_INFO ( "%s/frequency: %5.2f, -1 means on update only", n_param.getNamespace().c_str(), frequency_ );
 
 
-    shm_waypoints_ = boost::shared_ptr<ShmFw::Vector<ShmFw::WayPoint> > ( new ShmFw::Vector<ShmFw::WayPoint> ( shm_variable_name_, shm_handler ) );
+    shm_waypoints_ = boost::shared_ptr<ShmFw::Vector<ShmFw::ModelState> > ( new ShmFw::Vector<ShmFw::ModelState> ( shm_variable_name_, shm_handler ) );
 
     pub_waypoints_ = n.advertise<geometry_msgs::PoseArray> ( shm_variable_name_, 1 );
     thread_ = boost::thread ( boost::bind ( &WayPoints::update, this ) );
@@ -69,7 +69,7 @@ void WayPoints::update() {
     ros::Rate rate ( frequency_ );
     int timeout = 1000.0/frequency_;
     int timeout_count = 0;
-    std::vector<ShmFw::WayPoint> points;
+    std::vector<ShmFw::ModelState> points;
     points.resize ( 10 );
     geometry_msgs::PoseArray waypoints;
     while ( ros::ok() ) {

@@ -37,51 +37,67 @@
 #include <shmfw/objects/twist.h>
 
 Command::Command()
-    : shm_variable_name_("cmd_vel")
-    , frequency_ ( 1.0 ) {
+    : shm_name_cmd_ ( "cmd_vel" )
+    , timeout_signal_ ( 1.0 )
+    , frequency_ ( 10.0 ) {
 
 }
 
-void Command::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler) {
+void Command::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler ) {
 
-    n_param.getParam ( "shm_variable_name", shm_variable_name_ );
-    ROS_INFO ( "%s/shm_variable_name: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace(shm_variable_name_).c_str() );
-    
+    n_param.getParam ( "shm_name_cmd", shm_name_cmd_ );
+    ROS_INFO ( "%s/shm_name_cmd: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace ( shm_name_cmd_ ).c_str() );
+
+    n_param.getParam ( "timeout_signal", timeout_signal_ );
+    ROS_INFO ( "%s/timeout_signal: %f sec", n_param.getNamespace().c_str(), timeout_signal_ );
+
     n_param.getParam ( "frequency", frequency_ );
     ROS_INFO ( "%s/frequency: %5.2f, -1 means on update only", n_param.getNamespace().c_str(), frequency_ );
 
-    
-    shm_cmd_ = boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > ( new ShmFw::Var<ShmFw::Twist> ( shm_variable_name_, shm_handler ) );
 
-    pub_ = n.advertise<geometry_msgs::Twist> ( shm_variable_name_, 1 );
+    shm_cmd_ = boost::shared_ptr<ShmFw::Var<ShmFw::Twist> > ( new ShmFw::Var<ShmFw::Twist> ( shm_name_cmd_, shm_handler ) );
+
+    pub_ = n.advertise<geometry_msgs::Twist> ( shm_name_cmd_, 1 );
     thread_ = boost::thread ( boost::bind ( &Command::update, this ) );
 
 }
 
 void Command::update() {
-    ros::Rate rate(frequency_);
-    int timeout = 1000.0/frequency_;
+    boost::posix_time::time_duration duration_timeout( boost::posix_time::milliseconds ( timeout_signal_ * 1000 ) );
+    double update_freq = frequency_;
+    if ( frequency_ < 0 ) update_freq = 100;
+    ros::Rate rate ( update_freq );
+    int timeout = 1000.0/update_freq;
     int timeout_count = 0;
     geometry_msgs::Twist cmd;
     ShmFw::Twist twist;
-    cmd.linear.x = cmd.linear.y = cmd.linear.z = cmd.angular.x = 0,  cmd.angular.y = 0,  cmd.angular.z = 0;
+    boost::posix_time::ptime next_stop_command =  ShmFw::now();
     while ( ros::ok() ) {
         bool read = false;
-        if ( frequency_ < 0 ) {
-            shm_cmd_->wait();
+        if ( shm_cmd_->timed_wait ( timeout ) ) {
             read = true;
         } else {
-            shm_cmd_->timed_wait ( timeout );
-            read = true;
+            if ( frequency_ > 0 ) {
+                ROS_INFO ( "Command::update_motion timeout: %i", timeout_count );
+                read = true;
+                timeout_count++;
+            }
+        }
+        boost::posix_time::time_duration duration_difference =  ShmFw::now() - shm_cmd_->timestampShm();
+        if ( duration_difference > duration_timeout ) {
+            read = false;
+	    if(ShmFw::now() > next_stop_command){
+	      next_stop_command =  ShmFw::now() + duration_timeout;
+	      ROS_INFO ( "Command::update signal timeout: %f sec -> send stop", timeout_signal_ );
+	      cmd.linear.x = cmd.linear.y = cmd.linear.z = cmd.angular.x = 0,  cmd.angular.y = 0,  cmd.angular.z = 0;
+	      pub_.publish ( cmd );
+	    }
         }
         if ( read ) {
             timeout_count = 0;
-	    shm_cmd_->get(twist);
-	    twist.copyTo(cmd);
+            shm_cmd_->get ( twist );
+            twist.copyTo ( cmd );
             pub_.publish ( cmd );
-        } else {
-            ROS_INFO ( "Command::update_motion timeout: %i", timeout_count );
-            timeout_count++;
         }
         rate.sleep();
     }

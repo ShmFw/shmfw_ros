@@ -51,22 +51,27 @@ ShmFwBridge::ShmFwBridge ()
     shm_handler_ = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_ );
     shm_handler_->setNamespace(n_.getNamespace());
     
+    //bridge_command_ = false;
     if ( bridge_command_ ) {
         command_ = boost::shared_ptr<Command> ( new Command );
         command_->initialize ( n_, ros::NodeHandle ( n_param_,"cmd" ), shm_handler_);
     }
+    //bridge_segments_ = false;
     if ( bridge_segments_ ) {
         segments_ = boost::shared_ptr<Segments> ( new Segments );
         segments_->initialize ( n_, ros::NodeHandle ( n_param_,"path" ), shm_handler_);
     }
+    //bridge_waypoints_ = false;
     if ( bridge_waypoints_ ) {
         waypoints_ = boost::shared_ptr<WayPoints> ( new WayPoints );
         waypoints_->initialize ( n_, ros::NodeHandle ( n_param_,"waypoints" ), shm_handler_);
     }
+    //bridge_pose_ = false;
     if ( bridge_pose_ ) {
         pose_ = boost::shared_ptr<Pose> ( new Pose );
         pose_->initialize ( n_, ros::NodeHandle ( n_param_,"pose" ), shm_handler_);
     }
+    //bridge_gazebo_ = false;
     if ( bridge_gazebo_ ) {
         gazebo_ = boost::shared_ptr<Gazebo> ( new Gazebo );
         gazebo_->initialize ( n_, ros::NodeHandle ( n_param_,"gazebo" ), shm_handler_);
