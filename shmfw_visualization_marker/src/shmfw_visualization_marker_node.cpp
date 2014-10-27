@@ -103,12 +103,12 @@ void ShmFwVisualizationMarker::publish_marker() {
             read = true;
         }
         if ( read ) {
-            if ( shm_visualization_marker_->ref().type == ShmFw::ros::VisualizationMarker::MARKER_NA ) {
+            if ( shm_visualization_marker_->get()->type == ShmFw::ros::VisualizationMarker::MARKER_NA ) {
                 ROS_INFO ( "Marker type no set for: %s", shm_visualization_marker_->name().c_str() );
             } else {
                 timeout_count_ = 0;
                 shm_visualization_marker_->lock();
-                shm_visualization_marker_->ref().copyTo ( ros_visualization_marker_ );
+                shm_visualization_marker_->get()->copyTo ( ros_visualization_marker_ );
                 shm_visualization_marker_->unlock();
                 pub_marker_.publish ( ros_visualization_marker_ );
             }
@@ -139,9 +139,9 @@ void ShmFwVisualizationMarker::publish_marker_array() {
         if ( read ) {
             timeout_count_ = 0;
             shm_visualization_marker_array_->lock();
-            ros_visualization_marker_array_.markers.resize ( shm_visualization_marker_array_->ref().markers.size() );
-            for ( size_t i = 0; i < shm_visualization_marker_array_->ref().markers.size(); i++ ) {
-                ShmFw::ros::VisualizationMarker &shm_visualization_marker = shm_visualization_marker_array_->ref().markers[i];
+            ros_visualization_marker_array_.markers.resize ( shm_visualization_marker_array_->get()->markers.size() );
+            for ( size_t i = 0; i < shm_visualization_marker_array_->get()->markers.size(); i++ ) {
+                ShmFw::ros::VisualizationMarker &shm_visualization_marker = shm_visualization_marker_array_->get()->markers[i];
                 visualization_msgs::Marker &ros_visualization_marker = ros_visualization_marker_array_.markers[i];
                 shm_visualization_marker.copyTo ( ros_visualization_marker );
             }
