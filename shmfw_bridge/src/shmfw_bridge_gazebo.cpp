@@ -85,22 +85,20 @@ void Gazebo::update() {
     srv.request.model_name = gazebo_model_name_;
     unsigned int service_call_failure = 0;
     while ( ros::ok() ) {
-        if ( pub_.getNumSubscribers() > 0 ) {
-            if ( service_client_.call ( srv ) ) {
-                pose3D.copyFrom ( srv.response.pose );
-                modelState.copyFrom ( srv.response );
-                pose3D.getPose2D ( pose2D );
-                shm_pose_->set ( pose2D );
-                shm_state_->set ( modelState );
-                msg_.header.stamp = srv.response.header.stamp;
-                pose3D.copyTo ( msg_.pose );
-                pub_.publish ( msg_ );
-            } else {
-                service_call_failure++;
-                if ( service_call_failure > 100 ) {
-                    ROS_ERROR ( "Failed get gazebo robot pose of %s for %d time in a row.", gazebo_model_name_.c_str(), service_call_failure );
-                    service_call_failure = 0;
-                }
+        if ( service_client_.call ( srv ) ) {
+            pose3D.copyFrom ( srv.response.pose );
+            modelState.copyFrom ( srv.response );
+            pose3D.getPose2D ( pose2D );
+            shm_pose_->set ( pose2D );
+            shm_state_->set ( modelState );
+            msg_.header.stamp = srv.response.header.stamp;
+            pose3D.copyTo ( msg_.pose );
+            pub_.publish ( msg_ );
+        } else {
+            service_call_failure++;
+            if ( service_call_failure > 100 ) {
+                ROS_ERROR ( "Failed get gazebo robot pose of %s for %d time in a row.", gazebo_model_name_.c_str(), service_call_failure );
+                service_call_failure = 0;
             }
         }
         rate.sleep();

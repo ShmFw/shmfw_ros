@@ -6,6 +6,7 @@
   <arg name="bridge_segments" default="true" />
   <arg name="bridge_waypoints" default="true" />
   <arg name="bridge_gazebo" default="true" />
+  <arg name="pose_gt" default="pose_gt" />
 
   <group ns="$(arg robot_name)">
     <node pkg="shmfw_bridge" type="shmfw_bridge_node" name="shmfw_bridge" output="screen">
@@ -19,7 +20,7 @@
       <param name="path/resolution" value="0.2"/>       
       <param name="cmd/frequency" value="-1"/>     
       <param name="gazebo/frequency" value="10"/>    
-      <param name="gazebo/shm_name_pose" value="pose_gt"/>    
+      <param name="gazebo/shm_name_pose" value="$(arg pose_gt)"/>    
       <param name="gazebo/shm_name_state" value="state_gt"/>    
       <param name="bridge_pose" value="$(arg bridge_pose)"/>    
       <param name="bridge_command" value="$(arg bridge_command)"/>    
