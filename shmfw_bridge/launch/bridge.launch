@@ -6,7 +6,8 @@
   <arg name="bridge_segments" default="true" />
   <arg name="bridge_waypoints" default="true" />
   <arg name="bridge_gazebo" default="true" />
-  <arg name="pose_gt" default="pose_gt" />
+  <arg name="pose_gt" default="pose_gt" />  <!-- pose form gazebo ground truth -->
+  <arg name="pose_tf" default="pose_tf" />  <!-- pose published via a TF (self-localization) -->
 
   <group ns="$(arg robot_name)">
     <node pkg="shmfw_bridge" type="shmfw_bridge_node" name="shmfw_bridge" output="screen">
@@ -14,6 +15,8 @@
       <param name="pose/tf_prefix" value="$(arg robot_name)"/> 
       <param name="pose/target_frame" value="/map"/>    
       <param name="pose/source_frame" value="base_link"/>  
+      <param name="pose/shm_name_pose" value="$(arg pose_tf)"/>  
+      <param name="pose/shm_name_agent_state" value="agent_state"/>  
       <param name="cmd/shm_name_cmd" value="cmd_vel"/> 
       <param name="cmd/timeout_signal" value="5"/>     
       <param name="cmd/frequency" value="-1"/>     

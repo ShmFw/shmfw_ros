@@ -37,6 +37,7 @@
 #include <shmfw/objects/pose.h>
 #include <shmfw/objects/pose2d_agv.h>
 #include <shmfw/objects/model_state.h>
+#include <gazebo_msgs/ModelState.h>
 #include <gazebo_msgs/ModelStates.h>
 #include <gazebo_msgs/GetModelState.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -45,6 +46,7 @@ Gazebo::Gazebo()
     : target_frame_ ( "map" )
     , shm_name_pose_ ( "pose_gt" )
     , shm_name_state_ ( "state_gt" )
+    , shm_name_init_state_ ( "init_state" )
     , gazebo_model_name_ ( "r1" )
     , frequency_ ( 10 ) {
 
@@ -58,6 +60,9 @@ void Gazebo::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::sh
     n_param.getParam ( "shm_name_state", shm_name_state_ );
     ROS_INFO ( "%s/shm_name_state: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace ( shm_name_state_ ).c_str() );
 
+    n_param.getParam ( "init_state", shm_name_init_state_ );
+    ROS_INFO ( "%s/init_state: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace ( shm_name_init_state_ ).c_str() );
+
     n_param.getParam ( "target_frame", target_frame_ );
     ROS_INFO ( "%s/target_frame: %s", n_param.getNamespace().c_str(), target_frame_.c_str() );
 
@@ -69,29 +74,35 @@ void Gazebo::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::sh
 
     shm_pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_name_pose_, shm_handler ) );
     shm_state_ = boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > ( new ShmFw::Var<ShmFw::ModelState> ( shm_name_state_, shm_handler ) );
+    shm_init_state_ = boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > ( new ShmFw::Var<ShmFw::ModelState> ( shm_name_init_state_, shm_handler ) );
+    shm_init_state_->dataProcessed();
     msg_.header.frame_id = target_frame_;
     msg_.header.seq = 0;
     pub_ = n.advertise<geometry_msgs::PoseStamped> ( "pose_gt", 1 );
-    service_client_ = n.serviceClient<gazebo_msgs::GetModelState> ( "/gazebo/get_model_state" );
+    service_get_model_ = n.serviceClient<gazebo_msgs::GetModelState> ( "/gazebo/get_model_state" );
+    pub_set_model_ = n.advertise<gazebo_msgs::ModelState> ( "/gazebo/set_model_state", 1 );
     thread_ = boost::thread ( boost::bind ( &Gazebo::update, this ) );
 }
 
 void Gazebo::update() {
     ShmFw::Pose2DAGV pose2D;
     ShmFw::Pose pose3D;
-    ShmFw::ModelState modelState;
     ros::Rate rate ( frequency_ );
-    gazebo_msgs::GetModelState srv;
-    srv.request.model_name = gazebo_model_name_;
+    gazebo_msgs::GetModelState srv_get_model;
+    srv_get_model.request.model_name = gazebo_model_name_;
+    gazebo_msgs::ModelState msg_set_model;
+    msg_set_model.model_name = gazebo_model_name_;
+    msg_set_model.reference_frame = "world";
     unsigned int service_call_failure = 0;
     while ( ros::ok() ) {
-        if ( service_client_.call ( srv ) ) {
-            pose3D.copyFrom ( srv.response.pose );
-            modelState.copyFrom ( srv.response );
+        if ( service_get_model_.call ( srv_get_model ) ) {
+            ShmFw::ModelState modelState;
+            pose3D.copyFrom ( srv_get_model.response.pose );
+            modelState.copyFrom ( srv_get_model.response );
             pose3D.getPose2D ( pose2D );
             shm_pose_->set ( pose2D );
             shm_state_->set ( modelState );
-            msg_.header.stamp = srv.response.header.stamp;
+            msg_.header.stamp = srv_get_model.response.header.stamp;
             pose3D.copyTo ( msg_.pose );
             pub_.publish ( msg_ );
         } else {
@@ -100,6 +111,14 @@ void Gazebo::update() {
                 ROS_ERROR ( "Failed get gazebo robot pose of %s for %d time in a row.", gazebo_model_name_.c_str(), service_call_failure );
                 service_call_failure = 0;
             }
+        }
+        if ( shm_init_state_->hasChanged() ) {
+            shm_init_state_->dataProcessed();
+            ShmFw::ModelState modelState;
+            shm_init_state_->get ( modelState );
+            modelState.pose.copyTo ( msg_set_model.pose );
+            modelState.twist.copyTo ( msg_set_model.twist );
+	    pub_set_model_.publish(msg_set_model);
         }
         rate.sleep();
     }

@@ -38,6 +38,7 @@
 #include <tf/transform_listener.h>
 #include <boost/thread.hpp>
 #include <gazebo_msgs/ModelStates.h>
+#include <gazebo_msgs/AgentState.h>
 #include <shmfw/forward_declarations.h>
 #include <shmfw/allocator.h>
 
@@ -103,16 +104,19 @@ public:
 class Pose {
 public:
     Pose();
-    void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
+    void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);	
+    void callbackAgentState(const gazebo_msgs::AgentState::ConstPtr& msg);
     std::string target_frame_;
     std::string source_frame_;
-    std::string shm_variable_name_;
+    std::string shm_name_pose_;
+    std::string shm_name_agent_state_;
     double frequency_;
     std::string tf_prefix_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
-    boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > shm_state_;
+    boost::shared_ptr<ShmFw::Var<ShmFw::AgentState> > shm_agent_state_;
     boost::thread thread_;
     tf::TransformListener listener_;
+    ros::Subscriber sub_agent_state_;
     ros::Publisher pub_;
     void update();
 };
@@ -124,12 +128,15 @@ public:
     std::string target_frame_;
     std::string shm_name_pose_;
     std::string shm_name_state_;
+    std::string shm_name_init_state_;
     std::string gazebo_model_name_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
     boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > shm_state_;
+    boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > shm_init_state_;
     boost::thread thread_;
     ros::Publisher pub_;
-    ros::ServiceClient service_client_;
+    ros::ServiceClient service_get_model_;
+    ros::Publisher pub_set_model_;
     geometry_msgs::PoseStamped msg_;
     double frequency_;
     void update();

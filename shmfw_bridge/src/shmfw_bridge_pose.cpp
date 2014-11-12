@@ -35,11 +35,13 @@
 
 #include <shmfw/variable.h>
 #include <shmfw/objects/pose2d_agv.h>
+#include <shmfw/objects/agent_state.h>
 
 Pose::Pose()
     : target_frame_ ( "map" )
     , source_frame_ ( "base_link" )
-    , shm_variable_name_ ( "pose" )
+    , shm_name_pose_ ( "pose" )
+    , shm_name_agent_state_ ( "agent_state" )
     , tf_prefix_ ()
     , frequency_ ( 10 ) {
 
@@ -47,8 +49,10 @@ Pose::Pose()
 
 void Pose::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler ) {
 
-    n_param.getParam ( "shm_variable_name", shm_variable_name_ );
-    ROS_INFO ( "%s/shm_variable_name: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace ( shm_variable_name_ ).c_str() );
+    n_param.getParam ( "shm_name_pose", shm_name_pose_ );
+    ROS_INFO ( "%s/shm_name_pose: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace ( shm_name_pose_ ).c_str() );
+    n_param.getParam ( "shm_name_agent_state", shm_name_agent_state_ );
+    ROS_INFO ( "%s/shm_name_agent_state: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace ( shm_name_agent_state_ ).c_str() );
     n_param.getParam ( "target_frame", target_frame_ );
     ROS_INFO ( "%s/target_frame: %s", n_param.getNamespace().c_str(), target_frame_.c_str() );
     n_param.getParam ( "source_frame", source_frame_ );
@@ -56,8 +60,13 @@ void Pose::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::shar
     n_param.getParam ( "tf_prefix", tf_prefix_ );
     ROS_INFO ( "%s/tf_prefix: %s", n_param.getNamespace().c_str(), tf_prefix_.c_str() );
 
-    shm_pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_variable_name_, shm_handler ) );;
+    shm_pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_name_pose_, shm_handler ) );
+    std::string target_frame_id = tf::resolve ( tf_prefix_, target_frame_ );
+    std::string source_frame_id = tf::resolve ( tf_prefix_, source_frame_ );
+    shm_pose_->info_text ( "Pose computed form TF " + source_frame_id + " -> " + target_frame_id + " frame" );
+    shm_agent_state_ = boost::shared_ptr<ShmFw::Var<ShmFw::AgentState> > ( new ShmFw::Var<ShmFw::AgentState> ( shm_name_agent_state_, shm_handler ) );
     thread_ = boost::thread ( boost::bind ( &Pose::update, this ) );
+    sub_agent_state_ = n.subscribe ( "agent_state", 1000, &Pose::callbackAgentState, this );
 }
 
 void Pose::update() {
@@ -79,6 +88,16 @@ void Pose::update() {
             //ROS_ERROR ( "%s",ex.what() );
             ros::Duration ( 1.0 ).sleep();
         }
+        ros::spinOnce();
         rate.sleep();
     }
+}
+void Pose::callbackAgentState ( const gazebo_msgs::AgentState::ConstPtr& msg ) {
+    ShmFw::AgentState s;
+    s.trip_recorder = msg->trip_recorder;
+    s.sub_meter_trip_recorder = msg->sub_meter_trip_recorder;
+    s.current.copyFrom ( msg->current );
+    s.target.copyFrom ( msg->target );
+    shm_agent_state_->set ( s );
+
 }
