@@ -38,9 +38,12 @@
 #include <tf/transform_listener.h>
 #include <boost/thread.hpp>
 #include <gazebo_msgs/ModelStates.h>
-#include <gazebo_msgs/AgentState.h>
+#include <std_msgs/UInt64.h>
 #include <shmfw/forward_declarations.h>
 #include <shmfw/allocator.h>
+#include <shmfw/objects/agent_state.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
 
 namespace visualization_msgs{
   template <class ContainerAllocator> struct Marker_;
@@ -104,21 +107,27 @@ public:
 class Pose {
 public:
     Pose();
-    void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);	
-    void callbackAgentState(const gazebo_msgs::AgentState::ConstPtr& msg);
+    void initialize(ros::NodeHandle &n, ros::NodeHandle n_param, boost::shared_ptr<ShmFw::Handler> &shm_handler);
     std::string target_frame_;
     std::string source_frame_;
     std::string shm_name_pose_;
     std::string shm_name_agent_state_;
     double frequency_;
     std::string tf_prefix_;
+    double trip_recorder_scale_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
     boost::shared_ptr<ShmFw::Var<ShmFw::AgentState> > shm_agent_state_;
     boost::thread thread_;
     tf::TransformListener listener_;
-    ros::Subscriber sub_agent_state_;
+    ros::Subscriber sub_trip_recorder_;
+    ros::Subscriber sub_command_current_;
+    ros::Subscriber sub_command_target_;
     ros::Publisher pub_;
     void update();
+    ShmFw::AgentState agent_state_;
+    void callbackTripRecorder(const std_msgs::UInt64Ptr& trip_recorder);
+    void callbackCmdCurrent(const geometry_msgs::TwistPtr& command_current);
+    void callbackCmdTarget(const geometry_msgs::TwistPtr& command_target);
 };
 
 class Gazebo {
