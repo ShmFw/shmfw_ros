@@ -18,7 +18,7 @@
       <param name="pose/shm_name_pose" value="$(arg pose_tf)"/>  
       <param name="pose/shm_name_agent_state" value="agent_state"/>  
       <param name="cmd/shm_name_cmd" value="cmd_vel"/> 
-      <param name="cmd/timeout_signal" value="5"/>     
+      <param name="cmd/timeout_signal" value="0.5"/>     
       <param name="cmd/frequency" value="-1"/>     
       <param name="path/resolution" value="0.2"/>       
       <param name="cmd/frequency" value="-1"/>     

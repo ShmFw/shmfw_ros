@@ -63,7 +63,7 @@ void Command::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::s
 }
 
 void Command::update() {
-    boost::posix_time::time_duration duration_timeout( boost::posix_time::milliseconds ( timeout_signal_ * 1000 ) );
+    boost::posix_time::time_duration duration_timeout ( boost::posix_time::milliseconds ( timeout_signal_ * 1000 ) );
     double update_freq = frequency_;
     if ( frequency_ < 0 ) update_freq = 100;
     ros::Rate rate ( update_freq );
@@ -72,10 +72,12 @@ void Command::update() {
     geometry_msgs::Twist cmd;
     ShmFw::Twist twist;
     boost::posix_time::ptime next_stop_command =  ShmFw::now();
+    bool dead_mean_stop_ready;
     while ( ros::ok() ) {
         bool read = false;
         if ( shm_cmd_->timed_wait ( timeout ) ) {
             read = true;
+            dead_mean_stop_ready = true;
         } else {
             if ( frequency_ > 0 ) {
                 ROS_INFO ( "Command::update_motion timeout: %i", timeout_count );
@@ -86,12 +88,15 @@ void Command::update() {
         boost::posix_time::time_duration duration_difference =  ShmFw::now() - shm_cmd_->timestampShm();
         if ( duration_difference > duration_timeout ) {
             read = false;
-	    if(ShmFw::now() > next_stop_command){
-	      next_stop_command =  ShmFw::now() + duration_timeout;
-	      ROS_INFO ( "Command::update signal timeout: %f sec -> send stop", timeout_signal_ );
-	      cmd.linear.x = cmd.linear.y = cmd.linear.z = cmd.angular.x = 0,  cmd.angular.y = 0,  cmd.angular.z = 0;
-	      pub_.publish ( cmd );
-	    }
+            if ( ShmFw::now() > next_stop_command ) {
+                next_stop_command =  ShmFw::now() + duration_timeout;
+                if ( dead_mean_stop_ready ) {
+                    ROS_INFO ( "Command::update signal timeout: %f sec -> send stop", timeout_signal_ );
+                    cmd.linear.x = cmd.linear.y = cmd.linear.z = cmd.angular.x = 0,  cmd.angular.y = 0,  cmd.angular.z = 0;
+                    pub_.publish ( cmd );
+                    dead_mean_stop_ready = false;
+                }
+            }
         }
         if ( read ) {
             timeout_count = 0;
