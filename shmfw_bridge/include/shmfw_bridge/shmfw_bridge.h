@@ -138,7 +138,9 @@ public:
     std::string shm_name_pose_;
     std::string shm_name_state_;
     std::string shm_name_init_state_;
+    std::string shm_name_sim_time_;
     std::string gazebo_model_name_;
+    boost::shared_ptr<ShmFw::Var<boost::posix_time::ptime> > shm_time_;
     boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > shm_pose_;
     boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > shm_state_;
     boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > shm_init_state_;

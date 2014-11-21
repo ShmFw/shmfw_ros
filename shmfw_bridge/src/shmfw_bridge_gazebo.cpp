@@ -41,14 +41,24 @@
 #include <gazebo_msgs/ModelStates.h>
 #include <gazebo_msgs/GetModelState.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+boost::posix_time::ptime  timeval2ptime_utc ( unsigned long sec, unsigned long usec, unsigned long nsec ) {
+    using namespace boost::posix_time;
+    typedef boost::date_time::subsecond_duration<time_duration,1000000000> nanoseconds;
+    boost::gregorian::date d ( 1970, boost::gregorian::Jan, 1 );
+    ptime  t_utc ( d, seconds ( sec ) + microseconds ( usec ) + nanoseconds ( nsec ) );
+    return t_utc;
+}
 
 Gazebo::Gazebo()
     : target_frame_ ( "map" )
     , shm_name_pose_ ( "pose_gt" )
     , shm_name_state_ ( "state_gt" )
     , shm_name_init_state_ ( "init_state" )
+    , shm_name_sim_time_( "simulated_time")
     , gazebo_model_name_ ( "r1" )
-    , frequency_ ( 10 ) {
+    , frequency_ ( 25 ) {
 
 }
 
@@ -63,18 +73,22 @@ void Gazebo::initialize ( ros::NodeHandle &n, ros::NodeHandle n_param, boost::sh
     n_param.getParam ( "init_state", shm_name_init_state_ );
     ROS_INFO ( "%s/init_state: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace ( shm_name_init_state_ ).c_str() );
 
+    n_param.getParam ( "simulated_time", shm_name_sim_time_ );
+    ROS_INFO ( "%s/simulated_time: %s", n_param.getNamespace().c_str(), shm_handler->resolve_namespace ( shm_name_sim_time_ ).c_str() );
+
     n_param.getParam ( "target_frame", target_frame_ );
     ROS_INFO ( "%s/target_frame: %s", n_param.getNamespace().c_str(), target_frame_.c_str() );
 
     n_param.getParam ( "gazebo_model_name", gazebo_model_name_ );
     ROS_INFO ( "%s/gazebo_model_name: %s", n_param.getNamespace().c_str(), gazebo_model_name_.c_str() );
-
+    
     n_param.getParam ( "frequency", frequency_ );
     ROS_INFO ( "%s/frequency: %5.2f", n_param.getNamespace().c_str(), frequency_ );
 
     shm_pose_ = boost::shared_ptr<ShmFw::Var<ShmFw::Pose2DAGV> > ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_name_pose_, shm_handler ) );
     shm_state_ = boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > ( new ShmFw::Var<ShmFw::ModelState> ( shm_name_state_, shm_handler ) );
     shm_init_state_ = boost::shared_ptr<ShmFw::Var<ShmFw::ModelState> > ( new ShmFw::Var<ShmFw::ModelState> ( shm_name_init_state_, shm_handler ) );
+    shm_time_ = boost::shared_ptr<ShmFw::Var<boost::posix_time::ptime>  > ( new ShmFw::Var<boost::posix_time::ptime> ( shm_name_sim_time_, shm_handler ) );
     shm_init_state_->dataProcessed();
     msg_.header.frame_id = target_frame_;
     msg_.header.seq = 0;
@@ -93,6 +107,7 @@ void Gazebo::update() {
     gazebo_msgs::ModelState msg_set_model;
     msg_set_model.model_name = gazebo_model_name_;
     msg_set_model.reference_frame = "world";
+    boost::posix_time::ptime simulated_time;
     unsigned int service_call_failure = 0;
     while ( ros::ok() ) {
         if ( service_get_model_.call ( srv_get_model ) ) {
@@ -100,9 +115,13 @@ void Gazebo::update() {
             pose3D.copyFrom ( srv_get_model.response.pose );
             modelState.copyFrom ( srv_get_model.response );
             pose3D.getPose2D ( pose2D );
+	    /// ros::Time rTime = ros::Time::now(); /// not optimal !!!!!!!!!! :-(
+	    ros::Time rTime = srv_get_model.response.header.stamp; /// if gazebo is not supporting the new get_model_state use the line above
+	    simulated_time = timeval2ptime_utc(rTime.sec, 0, rTime.nsec);
+ 	    shm_time_->set ( simulated_time );    
             shm_pose_->set ( pose2D );
             shm_state_->set ( modelState );
-            msg_.header.stamp = srv_get_model.response.header.stamp;
+            msg_.header.stamp = rTime;
             pose3D.copyTo ( msg_.pose );
             pub_.publish ( msg_ );
         } else {

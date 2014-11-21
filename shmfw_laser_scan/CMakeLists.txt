@@ -1,16 +1,24 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(shmfw_bridge)
+project(shmfw_laser_scan)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}  -std=c++11")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp rospy tf geometry_msgs visualization_msgs gazebo_msgs)
+find_package(catkin REQUIRED roscpp rospy sensor_msgs)
 
 ## System dependencies are found with CMake's conventions
 find_package (Boost 1.40.0 REQUIRED COMPONENTS date_time thread serialization)
 
+if (DEFINED ENV{SHMFW})
+  include_directories($ENV{SHMFW}/include/)
+  include_directories($ENV{SHMFW}/src/dynamic/include)
+  FIND_LIBRARY(SHMFW_LIBRARY libshmfw.so PATHS $ENV{SHMFW}/lib )
+  MESSAGE( STATUS "ShmFw found: ${SHMFW_LIBRARY}" )
+else()
+    message("SHMFW NOT defined -> Using system ShmFw if installed?")
+endif()
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -79,7 +87,7 @@ find_package (Boost 1.40.0 REQUIRED COMPONENTS date_time thread serialization)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES shmfw_bridge
+#  LIBRARIES shmfw_laser_scan
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -90,28 +98,23 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include)
+# include_directories(include)
 
 ## Declare a cpp library
-# add_library(shmfw_bridge
-#   src/${PROJECT_NAME}/shmfw_bridge.cpp
+# add_library(shmfw_laser_scan
+#   src/${PROJECT_NAME}/shmfw_laser_scan.cpp
 # )
 
 ## Declare a cpp executable
-add_executable(shmfw_bridge_node src/shmfw_bridge.cpp 
-src/shmfw_bridge_pose.cpp 
-src/shmfw_bridge_command.cpp
-src/shmfw_bridge_segments.cpp
-src/shmfw_bridge_gazebo.cpp
-src/shmfw_bridge_waypoints.cpp)
+add_executable(shmfw_laser_scan_node src/shmfw_laser_scan_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(shmfw_bridge_node shmfw_bridge_generate_messages_cpp)
+# add_dependencies(shmfw_laser_scan_node shmfw_laser_scan_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(shmfw_bridge_node
-   ${catkin_LIBRARIES}  rt ${Boost_LIBRARIES}
+target_link_libraries(shmfw_laser_scan_node
+   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES}
 )
 
 #############
@@ -129,7 +132,7 @@ target_link_libraries(shmfw_bridge_node
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS shmfw_bridge shmfw_bridge_node
+# install(TARGETS shmfw_laser_scan shmfw_laser_scan_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -154,7 +157,7 @@ target_link_libraries(shmfw_bridge_node
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_shmfw_bridge.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_shmfw_laser_scan.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
