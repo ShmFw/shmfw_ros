@@ -1,0 +1,11 @@
+<launch>
+
+  <arg name="robot_name" default="r1" />
+  <group ns="$(arg robot_name)">
+    <node pkg="shmfw_laser_scan" type="shmfw_laser_scan_node" name="shmfw_laser_scan" output="screen">
+      <param name="shm_unlook" value="true"/> 
+      <remap from="scan" to="top_laser/scan"/>    
+    </node>
+  </group>
+
+</launch>

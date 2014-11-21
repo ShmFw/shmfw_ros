@@ -18,6 +18,11 @@
         <arg name="room" value="$(arg room)" />
    </include>
   
+   <!-- Laser bridge  -->
+   <include file="$(find shmfw_laser_scan)/launch/laser_scan.launch" >
+        <arg name="robot_name" value="$(arg robot_name)" />
+   </include>
+   
   <group ns="$(arg robot_name)">
     <node pkg="shmfw_bridge" type="shmfw_bridge_node" name="shmfw_bridge" output="screen">
       <param name="frequency" value="10"/> 
