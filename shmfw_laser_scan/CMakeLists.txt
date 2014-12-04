@@ -10,6 +10,7 @@ find_package(catkin REQUIRED roscpp rospy sensor_msgs)
 
 ## System dependencies are found with CMake's conventions
 find_package (Boost 1.40.0 REQUIRED COMPONENTS date_time thread serialization)
+find_package(ShmFw 2014.0.0 REQUIRED)
 
 if (DEFINED ENV{SHMFW})
   include_directories($ENV{SHMFW}/include/)
@@ -114,7 +115,7 @@ add_executable(shmfw_laser_scan_node src/shmfw_laser_scan_node.cpp src/main_shmf
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(shmfw_laser_scan_node
-   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES}
+   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES}
 )
 
 #############

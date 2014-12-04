@@ -10,7 +10,7 @@ find_package(catkin REQUIRED roscpp rospy tf geometry_msgs visualization_msgs ga
 
 ## System dependencies are found with CMake's conventions
 find_package (Boost 1.40.0 REQUIRED COMPONENTS date_time thread serialization)
-
+find_package(ShmFw 2014.0.0 REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -111,7 +111,7 @@ src/shmfw_bridge_waypoints.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(shmfw_bridge_node
-   ${catkin_LIBRARIES}  rt ${Boost_LIBRARIES}
+   ${catkin_LIBRARIES}  rt ${Boost_LIBRARIES}  ${ShmFw_LIBRARIES}
 )
 
 #############
