@@ -10,12 +10,14 @@
   <arg name="bridge_gazebo" default="true" />
   <arg name="pose_gt" default="pose_gt" />  <!-- pose form gazebo ground truth -->
   <arg name="pose_tf" default="pose_tf" />  <!-- pose published via a TF (self-localization) -->
+  <arg name="r1_pos" default="-x 0.0 -y -0.0 -z 0.01 -Y 1.4" />
 
   
    <!-- Gazebo  -->
    <include file="$(find dsa_gazebo)/launch/all.launch" >
         <arg name="world" value="$(arg world)" />
         <arg name="room" value="$(arg room)" />
+        <arg name="r1_pos" value="$(arg r1_pos)" />
    </include>
   
    <!-- Laser bridge  -->
