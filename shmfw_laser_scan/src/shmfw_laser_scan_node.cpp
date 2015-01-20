@@ -63,8 +63,7 @@ void ShmFwLaserScanNode::read_parameter() {
     n_param_.getParam ( "shm_unlook", shm_unlook_ );
     ROS_INFO ( "shm_unlook: %s", (shm_unlook_?"ture":"false") );
 
-    ShmFw::HandlerPtr shmHdl = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_ );
-    shmHdl->setNamespace ( n_.getNamespace() );
+    ShmFw::HandlerPtr shmHdl = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_, n_.getNamespace() );
 
     laser_scan_.reset ( new ShmFw::Alloc<ShmFw::ros::LaserScan> ( shm_laser_name_, shmHdl ) );
     if(shm_unlook_)  laser_scan_->unlock();

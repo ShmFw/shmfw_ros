@@ -73,9 +73,8 @@ void ShmFwVisualizationMarker::read_parameter() {
     n_param_.getParam ( "shm_segment_size", shm_segment_size_ );
     ROS_INFO ( "shm_segment_size: %d", shm_segment_size_ );
 
-    ShmFw::HandlerPtr shmHdl = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_ );
-    shmHdl->setNamespace ( n_.getNamespace() );
-    
+    ShmFw::HandlerPtr shmHdl = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_, n_.getNamespace() );
+  
     n_param_.getParam ( "shm_marker_name", shm_marker_name_ );
     ROS_INFO ( "%s/shm_marker_name: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace(shm_marker_name_).c_str() );
 
