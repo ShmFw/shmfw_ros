@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(shmfw_visualization_marker)
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}  -std=c++11")
+add_compile_options(-std=c++11) ## for c++ 2011
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
