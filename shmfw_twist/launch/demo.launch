@@ -1,0 +1,15 @@
+<launch>
+
+  <arg name="robot_name" default="r1" />
+  
+  <group ns="$(arg robot_name)">
+  
+    <node pkg="shmfw_twist" type="shmfw_twist_node" name="shmfw_command" output="screen">
+      <param name="shm_twist_name" value="cmd_vel"/>    
+      <param name="timeout_signal" value="0.5"/>     
+      <param name="frequency" value="-1"/>     
+    </node>
+    
+  </group>
+
+</launch>
