@@ -1,19 +1,17 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(shmfw_twist)
+project(shmfw_tf)
 
 add_compile_options(-std=c++11) ## for c++ 2011
-
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp rospy geometry_msgs)
+find_package(catkin REQUIRED roscpp rospy tf)
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
 find_package (Boost 1.40.0 REQUIRED COMPONENTS date_time thread serialization)
 find_package(ShmFw 2014.0.0 REQUIRED)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -82,7 +80,7 @@ find_package(ShmFw 2014.0.0 REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES shmfw_twist
+#  LIBRARIES shmfw_tf
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -90,31 +88,29 @@ catkin_package(
 ###########
 ## Build ##
 ###########
-add_definitions( -DINCLUDE_ROS_HEADERS )
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include)
+# include_directories(include)
 
 ## Declare a cpp library
-# add_library(shmfw_twist
-#   src/${PROJECT_NAME}/shmfw_twist.cpp
+# add_library(shmfw_tf
+#   src/${PROJECT_NAME}/shmfw_tf.cpp
 # )
 
 ## Declare a cpp executable
-add_executable(shmfw_twist_node src/shmfw_twist_node.cpp)
+# add_executable(shmfw_tf_node src/shmfw_tf_node.cpp)
+add_executable(shmfw_tf_node src/shmfw_tf_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(shmfw_twist_node shmfw_twist_generate_messages_cpp)
+# add_dependencies(shmfw_tf_node shmfw_tf_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(shmfw_twist_node
+# target_link_libraries(shmfw_tf_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(shmfw_twist_node
-   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES}
-)
+target_link_libraries(shmfw_tf_node   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
 
 #############
 ## Install ##
@@ -131,7 +127,7 @@ target_link_libraries(shmfw_twist_node
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS shmfw_twist shmfw_twist_node
+# install(TARGETS shmfw_tf shmfw_tf_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -156,7 +152,7 @@ target_link_libraries(shmfw_twist_node
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_shmfw_twist.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_shmfw_tf.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

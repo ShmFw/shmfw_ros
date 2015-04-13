@@ -1,0 +1,15 @@
+<launch>
+
+  <arg name="robot_name" default="r1" />
+  
+  <group ns="$(arg robot_name)">
+  
+    <!-- sends PoseWithCovarianceStamped (initialpose) messages trigged by the shared memory to initilize the self localization -->
+    <node pkg="shmfw2ros" type="shmfw2ros_initialpose" name="shmfw_initialpose" output="screen">
+      <param name="shm_model_state_name" value="init_state"/>    
+    </node>
+    
+    
+  </group>
+
+</launch>

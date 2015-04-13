@@ -4,7 +4,8 @@
   
   <group ns="$(arg robot_name)">
   
-    <node pkg="shmfw_twist" type="shmfw_twist_node" name="shmfw_command" output="screen">
+    <!-- sends  twist (cmd_vel) messages trigged by the shared memory  -->
+    <node pkg="shmfw2ros" type="shmfw2ros_twist" name="shmfw_command" output="screen">
       <param name="shm_twist_name" value="cmd_vel"/>    
       <param name="timeout_signal" value="0.5"/>     
       <param name="frequency" value="-1"/>     

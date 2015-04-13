@@ -30,28 +30,51 @@
  *   POSSIBILITY OF SUCH DAMAGE.                                           *
  ***************************************************************************/
 
-#include <shmfw_twist_node.h>
+#include "ros/ros.h"
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <shmfw/objects/model_state.h>
+#include <shmfw/variable.h>
+
+class ShmFw2RosPose {
+  typedef boost::shared_ptr< ShmFw::Var<ShmFw::ModelState> > ShmModelStatePtr;
+public:
+    ShmFw2RosPose ();
+private:
+    ros::NodeHandle n_;
+    ros::NodeHandle n_param_;
+    double frequency_;
+    std::string shm_segment_name_;
+    int shm_segment_size_;
+    std::string  shm_model_state_name_;
+    std::string  target_frame_;
+    ros::Publisher pub_;
+    ShmModelStatePtr shm_model_state_;
+    geometry_msgs::PoseWithCovarianceStamped msg_init_pose_;
+private:
+    void convert(const ShmFw::ModelState &src, geometry_msgs::PoseWithCovarianceStamped &des);
+    void publish();
+    void read_parameter();
+};
 
 int main ( int argc, char **argv ) {
     ros::init ( argc, argv, "shmfw_twist" );
-    ShmFwTwist node;
+    ShmFw2RosPose node;
     return 0;
 }
 
-ShmFwTwist::ShmFwTwist ()
+ShmFw2RosPose::ShmFw2RosPose ()
     : n_ ()
     , n_param_ ( "~" )
-    , frequency_ ( 10.0 )
+    , frequency_ ( 1.0 )
     , shm_segment_name_ ( ShmFw::DEFAULT_SEGMENT_NAME() )
     , shm_segment_size_ ( ShmFw::DEFAULT_SEGMENT_SIZE() )
-    , shm_twist_name_ ( "twist" )
-    , timeout_signal_ ( 1.0 ) {
-
+    , shm_model_state_name_ ( "init_state" )
+    , target_frame_ ( "map" ) {
     read_parameter();
     publish();
 }
 
-void ShmFwTwist::read_parameter() {
+void ShmFw2RosPose::read_parameter() {
     std::stringstream ss;
     ROS_INFO ( "namespace: %s", n_param_.getNamespace().c_str() );
 
@@ -66,57 +89,60 @@ void ShmFwTwist::read_parameter() {
 
     ShmFw::HandlerPtr shmHdl = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_, n_.getNamespace() );
   
-    n_param_.getParam ( "shm_twist_name", shm_twist_name_ );
-    ROS_INFO ( "%s/shm_twist_name: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace(shm_twist_name_).c_str() );
+    n_param_.getParam ( "shm_model_state_name", shm_model_state_name_ );
+    ROS_INFO ( "%s/shm_model_state_name: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace(shm_model_state_name_).c_str() );
+        
+    n_param_.getParam ( "target_frame", target_frame_ );
+    ROS_INFO ( "%s/target_frame: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace(target_frame_).c_str() );
 
-    n_param_.getParam ( "timeout_signal", timeout_signal_ );
-    ROS_INFO ( "%s/timeout_signal: %f sec", n_param_.getNamespace().c_str(), timeout_signal_ );
-
-    ros_twist_default_.angular.x = 0;
-    ros_twist_default_.angular.y = 0;
-    ros_twist_default_.angular.z = 0;
-    ros_twist_default_.linear.x = 0;
-    ros_twist_default_.linear.y = 0;
-    ros_twist_default_.linear.z = 0;
     
-    shm_twist_.reset ( new ShmFw::Var<ShmFw::Twist> ( shm_twist_name_, shmHdl ) );
+    shm_model_state_.reset ( new ShmFw::Var<ShmFw::ModelState> ( shm_model_state_name_, shmHdl ) ); /// create shm variable    
+    pub_ = n_.advertise<geometry_msgs::PoseWithCovarianceStamped> ( "initialpose", 10 );    /// create publisher
     
-    pub_twist_ = n_.advertise<geometry_msgs::Twist> ( shm_twist_name_, 10 );
+    msg_init_pose_.header.frame_id = target_frame_;
+    msg_init_pose_.header.seq = 0;
     
 }
 
-void ShmFwTwist::publish() {
+void ShmFw2RosPose::convert(const ShmFw::ModelState &src, geometry_msgs::PoseWithCovarianceStamped &des) {
+  des.header.frame_id = target_frame_;
+  des.header.stamp.fromBoost(shm_model_state_->timestampLocal());
+  ShmFw::ModelState tmp = src;
+  tmp.pose.orientation.setRotation(ShmFw::Vector3<double>(0,0,1), 0);  /// Quickhack
+  tmp.pose.copyTo(des.pose.pose);
+  auto &c = des.pose.covariance;
+  c[ 0] = 0.25, c[ 1] = 0.00, c[ 2] = 0.00, c[ 3] = 0.00, c[ 4] = 0.00, c[ 5] = 0.00;
+  c[ 6] = 0.00, c[ 7] = 0.25, c[ 8] = 0.00, c[ 9] = 0.00, c[10] = 0.00, c[11] = 0.00;
+  c[12] = 0.00, c[13] = 0.00, c[14] = 0.00, c[15] = 0.00, c[16] = 0.00, c[17] = 0.00;
+  c[18] = 0.00, c[19] = 0.00, c[20] = 0.00, c[21] = 0.00, c[22] = 0.00, c[23] = 0.00;
+  c[24] = 0.00, c[25] = 0.00, c[26] = 0.00, c[27] = 0.00, c[28] = 0.00, c[29] = 0.00;
+  c[30] = 0.00, c[31] = 0.00, c[32] = 0.00, c[33] = 0.00, c[34] = 0.00, c[35] = 0.06853891945200942;
+}
 
-    boost::posix_time::time_duration duration_timeout ( boost::posix_time::milliseconds ( timeout_signal_ * 1000 ) );
+void ShmFw2RosPose::publish() {
+
     double update_freq = frequency_;
     if ( frequency_ < 0 ) update_freq = 100;
     ros::Rate rate ( update_freq );
     int timeout = 1000.0/update_freq;
     int timeout_count = 0;
-    ShmFw::Twist twist;
+    ShmFw::ModelState model_State;
     boost::posix_time::ptime next_stop_command =  ShmFw::now();
     bool publish;
     while ( ros::ok() ) {
         publish = false;
-        if ( shm_twist_->timed_wait ( timeout ) ) {
-            shm_twist_->get ( twist );
-            twist.copyTo ( ros_twist_ );
+        if ( shm_model_state_->timed_wait ( timeout ) ) {
+            shm_model_state_->get ( model_State );
+            convert(model_State, msg_init_pose_);
             publish = true;
         } else {
             if ( frequency_ > 0 ) {
-                ROS_INFO ( "timeout_count: %i cycles", timeout_count );
                 timeout_count++;
             }
         }
-        boost::posix_time::time_duration duration_difference =  ShmFw::now() - shm_twist_->timestampShm();
-        if (( duration_difference > duration_timeout ) && ( ShmFw::now() > next_stop_command)) {
-            next_stop_command =  ShmFw::now() + duration_timeout;
-	    ros_twist_ = ros_twist_default_;
-            publish = true;
-        }
         if ( publish ) {
             timeout_count = 0;
-            pub_twist_.publish ( ros_twist_ );
+            pub_.publish ( msg_init_pose_ );
         }
         rate.sleep();
     }
