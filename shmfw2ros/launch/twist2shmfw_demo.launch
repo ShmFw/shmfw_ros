@@ -1,0 +1,15 @@
+<launch>
+
+  <arg name="robot_name" default="r1" />
+  
+  <group ns="$(arg robot_name)">
+  
+    <!-- writes twist (cmd_vel) messages into the shared memory trigged by a ros message  -->
+    <node pkg="shmfw2ros" type="ros2shmfw_twist" name="shmfw_cmd_current" output="screen">
+      <param name="shm_twist_name" value="cmd_vel_current, cmd_vel_target"/>   
+      <param name="msg_twist_name" value="cmd_vel_current, cmd_vel_target"/>  
+    </node>
+    
+  </group>
+
+</launch>

@@ -10,7 +10,7 @@ find_package(catkin REQUIRED roscpp rospy visualization_msgs)
 
 #find_file(SHM_VISUALIZATION_MARKER_HEADER visualization_marker.h PATHS)
 
-find_package (Boost 1.40.0 REQUIRED COMPONENTS date_time thread serialization)
+find_package(Boost REQUIRED COMPONENTS program_options system thread iostreams regex signals date_time serialization filesystem )
 find_package(ShmFw 2014.0.0 REQUIRED)
 
 ## System dependencies are found with CMake's conventions

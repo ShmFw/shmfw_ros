@@ -103,6 +103,7 @@ include_directories(include)
 # add_executable(shmfw2ros_node src/shmfw2ros_node.cpp)
 add_executable(shmfw2ros_initialpose src/shmfw2ros_initialpose.cpp)
 add_executable(shmfw2ros_twist src/shmfw2ros_twist.cpp)
+add_executable(ros2shmfw_twist src/ros2shmfw_twist.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -111,6 +112,7 @@ add_executable(shmfw2ros_twist src/shmfw2ros_twist.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(shmfw2ros_initialpose   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
 target_link_libraries(shmfw2ros_twist   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
+target_link_libraries(ros2shmfw_twist   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
 
 #############
 ## Install ##
