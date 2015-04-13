@@ -34,14 +34,11 @@
 #include <tf/transform_listener.h>
 #include <boost/thread.hpp>
 #include <shmfw/objects/pose.h>
-#include <shmfw/objects/pose2d_agv.h>
 #include <shmfw/variable.h>
 
-class ShmFwTf {
-    typedef boost::shared_ptr< ShmFw::Var<ShmFw::Pose> > ShmPosePtr;
-    typedef boost::shared_ptr< ShmFw::Var<ShmFw::Pose2DAGV> > ShmPoseAGVPtr;
+class Ros2ShmFwTf {
 public:
-    ShmFwTf ();
+    Ros2ShmFwTf ();
 private:
     ros::NodeHandle n_;
     ros::NodeHandle n_param_;
@@ -54,10 +51,10 @@ private:
     std::string source_frame_;
     std::string source_frame_id_;
     std::string tf_prefix_;
-    std::string shm_pose_name_;
-    std::string shm_pose_agv_name_;
-    ShmPosePtr shm_pose_;
-    ShmPoseAGVPtr shm_pose_agv_;
+    std::string shm_name_pose_;
+    std::string shm_name_pose2d_;
+    ShmFw::Var<ShmFw::Pose> shm_pose_;
+    ShmFw::Var<ShmFw::Pose2D> shm_pose2d_;
     tf::TransformListener listener_;
 private:
     void loop();
@@ -66,11 +63,11 @@ private:
 
 int main ( int argc, char **argv ) {
     ros::init ( argc, argv, "shmfw_twist" );
-    ShmFwTf node;
+    Ros2ShmFwTf node;
     return 0;
 }
 
-ShmFwTf::ShmFwTf ()
+Ros2ShmFwTf::Ros2ShmFwTf ()
     : n_ ()
     , n_param_ ( "~" )
     , frequency_ ( 10.0 )
@@ -79,14 +76,14 @@ ShmFwTf::ShmFwTf ()
     , target_frame_ ( "map" )
     , source_frame_ ( "base_link" )
     , tf_prefix_ ()
-    , shm_pose_name_ ( "pose3d" )
-    , shm_pose_agv_name_ ( "pose" ) {
+    , shm_name_pose_ ( "pose3d" )
+    , shm_name_pose2d_ ( "pose" ) {
 
     read_parameter();
     loop();
 }
 
-void ShmFwTf::read_parameter() {
+void Ros2ShmFwTf::read_parameter() {
     std::stringstream ss;
     ROS_INFO ( "namespace: %s", n_param_.getNamespace().c_str() );
 
@@ -111,28 +108,28 @@ void ShmFwTf::read_parameter() {
 
     ShmFw::HandlerPtr shmHdl = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_, n_.getNamespace() );
 
-    n_param_.getParam ( "shm_pose_name", shm_pose_name_ );
-    ROS_INFO ( "%s/shm_pose_name: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace ( shm_pose_name_ ).c_str() );
+    n_param_.getParam ( "shm_name_pose", shm_name_pose_ );
+    ROS_INFO ( "%s/shm_name_pose: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace ( shm_name_pose_ ).c_str() );
 
     target_frame_id_ = tf::resolve ( tf_prefix_, target_frame_ );
     source_frame_id_ = tf::resolve ( tf_prefix_, source_frame_ );
     ROS_INFO ( "Waiting for TF %s -> %s",  target_frame_id_.c_str() ,  source_frame_id_.c_str() );
 
-    shm_pose_.reset ( new ShmFw::Var<ShmFw::Pose> ( shm_pose_name_, shmHdl ) );
-    shm_pose_->info_text ( "Pose computed form TF " + target_frame_id_ + " -> " + source_frame_id_ + " frame" );
+    shm_pose_.construct ( shm_name_pose_, shmHdl );
+    shm_pose_.info_text ( "Pose computed form TF " + target_frame_id_ + " -> " + source_frame_id_ + " frame" );
 
-    n_param_.getParam ( "shm_pose_agv_name", shm_pose_agv_name_ );
-    ROS_INFO ( "%s/shm_pose_agv_name: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace ( shm_pose_agv_name_ ).c_str() );
+    n_param_.getParam ( "shm_name_pose2d", shm_name_pose2d_ );
+    ROS_INFO ( "%s/shm_name_pose2d: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace ( shm_name_pose2d_ ).c_str() );
 
-    shm_pose_agv_.reset ( new ShmFw::Var<ShmFw::Pose2DAGV> ( shm_pose_agv_name_, shmHdl ) );
-    shm_pose_agv_->info_text ( "Pose computed form TF " + target_frame_id_ + " -> " + source_frame_id_ + " frame" );
+    shm_pose2d_.construct ( shm_name_pose2d_, shmHdl );
+    shm_pose2d_.info_text ( "Pose computed form TF " + target_frame_id_ + " -> " + source_frame_id_ + " frame" );
 }
 
-void ShmFwTf::loop() {
+void Ros2ShmFwTf::loop() {
 
 
     ShmFw::Pose pose;
-    ShmFw::Pose2DAGV pose_agv;
+    ShmFw::Pose2D pose2d;
     ros::Rate rate ( frequency_ );
     while ( ros::ok() ) {
         tf::StampedTransform transform;
@@ -148,10 +145,10 @@ void ShmFwTf::loop() {
             pose.position.x = t.x();
             pose.position.y = t.y();
             pose.position.z = t.z();
-            shm_pose_->set ( pose );
+            shm_pose_.set ( pose );
 
-            pose.getPose2D ( pose_agv );
-            shm_pose_agv_->set ( pose_agv );
+            pose.getPose2D ( pose2d );
+            shm_pose2d_.set ( pose2d );
         } catch ( tf::TransformException ex ) {
             //ROS_ERROR ( "%s",ex.what() );
             ros::Duration ( 1.0 ).sleep();

@@ -100,7 +100,7 @@ catkin_package(
 
 ## Declare a cpp executable
 # add_executable(shmfw_tf_node src/shmfw_tf_node.cpp)
-add_executable(shmfw_tf_node src/shmfw_tf_node.cpp)
+add_executable(ros2shmfw_tf src/ros2shmfw_tf.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -110,7 +110,7 @@ add_executable(shmfw_tf_node src/shmfw_tf_node.cpp)
 # target_link_libraries(shmfw_tf_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(shmfw_tf_node   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
+target_link_libraries(ros2shmfw_tf   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
 
 #############
 ## Install ##

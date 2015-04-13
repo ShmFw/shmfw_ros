@@ -1,0 +1,19 @@
+<launch>
+
+  <arg name="robot_name" default="r1" />
+  
+  <group ns="$(arg robot_name)">
+  
+    <!-- writes transformation (tf) messages into the shared memory trigged by a ros message  -->
+    <node pkg="shmfw_tf" type="ros2shmfw_tf" name="ros2shmfw_pose" output="screen">
+      <param name="tf_prefix" value="$(arg robot_name)"/>   
+      <param name="frequency" value="25"/>   
+      <param name="target_frame" value="map"/>   
+      <param name="source_frame" value="base_link"/>   
+      <param name="shm_name_pose" value="pose_self-localization"/>  
+      <param name="shm_name_pose2d" value="pose_estimated"/>   <!-- use pose_estimated  -->
+    </node>
+    
+  </group>
+
+</launch>
