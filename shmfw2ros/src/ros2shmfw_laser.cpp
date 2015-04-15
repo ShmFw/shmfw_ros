@@ -31,14 +31,15 @@
  ***************************************************************************/
 
 #include "ros/ros.h"
-#include <geometry_msgs/Twist.h>
-#include <shmfw/objects/twist.h>
-#include <shmfw/variable.h>
+#include <sensor_msgs/LaserScan.h>
+#include <shmfw/objects/ros/laser_scan.h>
+#include <shmfw/allocator.h>
 #include <boost/bind.hpp>
 
-class Ros2ShmFwTwist {
+class Ros2ShmFwLaser {
+  typedef boost::shared_ptr< ShmFw::Alloc<ShmFw::ros::LaserScan> > ShmLaserScanPtr;
 public:
-    Ros2ShmFwTwist ();
+    Ros2ShmFwLaser ();
 private:
     ros::NodeHandle n_;
     ros::NodeHandle n_param_;
@@ -47,8 +48,8 @@ private:
     std::vector<std::string>  shm_varibale_names_;
     std::vector<std::string>  ros_msg_names_;
     std::vector<ros::Subscriber> subscribers_;
-    std::vector< boost::shared_ptr< ShmFw::Var<ShmFw::Twist> > > shm_variables_;
-    void callbackTwist ( const geometry_msgs::TwistConstPtr& msg, int i );
+    std::vector< ShmLaserScanPtr > shm_variables_;
+    void callback(const sensor_msgs::LaserScanConstPtr& msg, int i);
 private:
     void publish();
     void read_parameter();
@@ -56,11 +57,11 @@ private:
 
 int main ( int argc, char **argv ) {
     ros::init ( argc, argv, "shmfw_twist" );
-    Ros2ShmFwTwist node;
+    Ros2ShmFwLaser node;
     return 0;
 }
 
-Ros2ShmFwTwist::Ros2ShmFwTwist ()
+Ros2ShmFwLaser::Ros2ShmFwLaser ()
     : n_ ()
     , n_param_ ( "~" )
     , shm_segment_name_ ( ShmFw::DEFAULT_SEGMENT_NAME() )
@@ -68,18 +69,25 @@ Ros2ShmFwTwist::Ros2ShmFwTwist ()
     , shm_varibale_names_ () {
 
     read_parameter();
-    ros::spin();
+
+    ros::Rate rate ( 1 );
+    while ( ros::ok() ) {
+        ros::spinOnce();
+        rate.sleep();
+    }
 }
 
-void Ros2ShmFwTwist::callbackTwist ( const geometry_msgs::TwistConstPtr& msg, int i ) {
-    ShmFw::Twist local_value;
-    local_value.copyFrom(*msg);
-    shm_variables_[i]->set(local_value);
+void Ros2ShmFwLaser::callback(const sensor_msgs::LaserScanConstPtr& msg, int i) {
+  shm_variables_[i]->lock();
+  shm_variables_[i]->get()->copyFrom(*msg);
+  shm_variables_[i]->itHasChanged();
+  shm_variables_[i]->unlock();
 }
 
-void Ros2ShmFwTwist::read_parameter() {
+void Ros2ShmFwLaser::read_parameter() {
     std::stringstream ss;
     std::string str_tmp;
+    
     ROS_INFO ( "ros namespace: %s", n_param_.getNamespace().c_str() );
 
     n_param_.getParam ( "shm_segment_name", shm_segment_name_ );
@@ -100,9 +108,6 @@ void Ros2ShmFwTwist::read_parameter() {
     n_param_.getParam ( "shm_variable_names", str_tmp );
     boost::erase_all ( str_tmp, " " );
     boost::split ( shm_varibale_names_, str_tmp, boost::is_any_of ( "," ) );
-    for ( unsigned int i = 0; i < shm_varibale_names_.size(); i++ ) {
-        ROS_INFO ( "%s/shm_variable_names: %s", n_param_.getNamespace().c_str(), shmHdl->resolve_namespace ( shm_varibale_names_[i] ).c_str() );
-    }
     
     if ( ros_msg_names_.empty() ) {
         ROS_FATAL ( "You have to name at least one ros message name in ros_msg_names!" );
@@ -121,9 +126,10 @@ void Ros2ShmFwTwist::read_parameter() {
     for ( unsigned int i = 0; i < shm_varibale_names_.size(); i++ ) {
         ROS_INFO ( "ros -> shm: %25s -> %s", shmHdl->resolve_namespace ( shm_varibale_names_[i] ).c_str(), shmHdl->resolve_namespace ( ros_msg_names_[i] ).c_str() );
     }
+    
     for ( int i = 0; i < shm_varibale_names_.size(); i++ ) {
-        shm_variables_[i].reset ( new ShmFw::Var<ShmFw::Twist> ( shm_varibale_names_[i], shmHdl ) );
-        subscribers_[i] = n_.subscribe<geometry_msgs::Twist> (ros_msg_names_[i], 10, boost::bind(&Ros2ShmFwTwist::callbackTwist, this, _1, i ));
+        shm_variables_[i].reset ( new ShmFw::Alloc<ShmFw::ros::LaserScan> ( shm_varibale_names_[i], shmHdl ) );
+	subscribers_[i] = n_.subscribe<sensor_msgs::LaserScan> ( ros_msg_names_[i], 10, boost::bind(&Ros2ShmFwLaser::callback, this, _1, i ));
     }
 
 }

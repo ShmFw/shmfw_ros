@@ -1,0 +1,14 @@
+<launch>
+
+  <arg name="robot_name" default="r1" />
+  
+  <group ns="$(arg robot_name)">
+  
+    <!-- writes laser_scan messages into the shared memory trigged by a ros message  -->
+    <node pkg="shmfw2ros" type="ros2shmfw_laser" name="ros2shmfw_laser" output="screen">
+      <param name="ros_msg_names" value="top_laser/scan"/>    <!-- one can also use a list separated with "," -->
+    </node>
+   
+  </group>
+
+</launch>

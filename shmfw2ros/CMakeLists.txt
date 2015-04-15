@@ -6,7 +6,7 @@ add_compile_options(-std=c++11) ## for c++ 2011
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp rospy geometry_msgs)
+find_package(catkin REQUIRED roscpp rospy geometry_msgs sensor_msgs)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -104,6 +104,7 @@ include_directories(include)
 add_executable(shmfw2ros_initialpose src/shmfw2ros_initialpose.cpp)
 add_executable(shmfw2ros_twist src/shmfw2ros_twist.cpp)
 add_executable(ros2shmfw_twist src/ros2shmfw_twist.cpp)
+add_executable(ros2shmfw_laser src/ros2shmfw_laser.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -113,6 +114,7 @@ add_executable(ros2shmfw_twist src/ros2shmfw_twist.cpp)
 target_link_libraries(shmfw2ros_initialpose   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
 target_link_libraries(shmfw2ros_twist   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
 target_link_libraries(ros2shmfw_twist   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
+target_link_libraries(ros2shmfw_laser   ${catkin_LIBRARIES} rt ${Boost_LIBRARIES} ${ShmFw_LIBRARIES} )
 
 #############
 ## Install ##
