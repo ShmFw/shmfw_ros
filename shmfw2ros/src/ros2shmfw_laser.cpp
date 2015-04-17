@@ -43,6 +43,7 @@ public:
 private:
     ros::NodeHandle n_;
     ros::NodeHandle n_param_;
+    double frequency_;
     std::string shm_segment_name_;
     int shm_segment_size_;
     std::vector<std::string>  shm_varibale_names_;
@@ -64,13 +65,14 @@ int main ( int argc, char **argv ) {
 Ros2ShmFwLaser::Ros2ShmFwLaser ()
     : n_ ()
     , n_param_ ( "~" )
+    , frequency_ (10.0)
     , shm_segment_name_ ( ShmFw::DEFAULT_SEGMENT_NAME() )
     , shm_segment_size_ ( ShmFw::DEFAULT_SEGMENT_SIZE() )
     , shm_varibale_names_ () {
 
     read_parameter();
 
-    ros::Rate rate ( 1 );
+    ros::Rate rate ( frequency_ );
     while ( ros::ok() ) {
         ros::spinOnce();
         rate.sleep();
@@ -89,6 +91,9 @@ void Ros2ShmFwLaser::read_parameter() {
     std::string str_tmp;
     
     ROS_INFO ( "ros namespace: %s", n_param_.getNamespace().c_str() );
+
+	n_param_.getParam ( "frequency", frequency_ );
+    ROS_INFO ( "frequency: %5.2f", frequency_ );
 
     n_param_.getParam ( "shm_segment_name", shm_segment_name_ );
     ROS_INFO ( "shm_segment_name: %s", shm_segment_name_.c_str() );
