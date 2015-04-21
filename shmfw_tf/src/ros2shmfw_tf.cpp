@@ -34,6 +34,7 @@
 #include <tf/transform_listener.h>
 #include <boost/thread.hpp>
 #include <shmfw/objects/pose.h>
+#include <shmfw/objects/transform2d.h>
 #include <shmfw/variable.h>
 
 class Ros2ShmFwTf {
@@ -55,6 +56,8 @@ private:
     std::string shm_name_pose2d_;
     ShmFw::Var<ShmFw::Pose> shm_pose_;
     ShmFw::Var<ShmFw::Pose2D> shm_pose2d_;
+    ShmFw::Transform2D tf_offset_;
+    
     tf::TransformListener listener_;
 private:
     void loop();
@@ -77,7 +80,7 @@ Ros2ShmFwTf::Ros2ShmFwTf ()
     , source_frame_ ( "base_link" )
     , tf_prefix_ ()
     , shm_name_pose_ ( "pose3d" )
-    , shm_name_pose2d_ ( "pose" ) {
+    , shm_name_pose2d_ ( "pose" )  {
 
     read_parameter();
     loop();
@@ -105,7 +108,11 @@ void Ros2ShmFwTf::read_parameter() {
     n_param_.getParam ( "tf_prefix", tf_prefix_ );
     ROS_INFO ( "%s/tf_prefix: %s", n_param_.getNamespace().c_str(), tf_prefix_.c_str() );
 
-
+    std::string str_tf("[[ 0.0, 0.0],[ 0.0]]");
+    n_param_.getParam ( "offset",  str_tf);
+    ROS_INFO ( "%s/offset: %s", n_param_.getNamespace().c_str(), str_tf.c_str() );
+    tf_offset_.setFromString(str_tf);
+    
     ShmFw::HandlerPtr shmHdl = ShmFw::Handler::create ( shm_segment_name_, shm_segment_size_, n_.getNamespace() );
 
     n_param_.getParam ( "shm_name_pose", shm_name_pose_ );
@@ -148,6 +155,7 @@ void Ros2ShmFwTf::loop() {
             shm_pose_.set ( pose );
 
             pose.getPose2D ( pose2d );
+	    pose2d = tf_offset_ * pose2d;
             shm_pose2d_.set ( pose2d );
         } catch ( tf::TransformException ex ) {
             //ROS_ERROR ( "%s",ex.what() );
